@@ -1,3 +1,4 @@
+import 'package:e_pkl/features/guru/presensi/buat_presensi.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/models/dashboard_guru_model.dart';
@@ -165,7 +166,11 @@ class _GuruHomePageState extends State<GuruHomePage> {
               EpklMenuCepatItem(
                 icon: Icons.schedule,
                 label: 'Absensi',
-                onTap: () => _buka(GuruTujuan.presensi),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => BuatPresensiPage(),
+                  ),
+                ),
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,
