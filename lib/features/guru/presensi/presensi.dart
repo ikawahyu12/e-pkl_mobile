@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'buat_presensi.dart';
+import '../rekap_kehadiran/rekap_kehadiran.dart';
 
 class PresensiPage extends StatefulWidget {
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
 
-  const PresensiPage({super.key, required this.onBack});
+  const PresensiPage({super.key, this.onBack});
 
   @override
   State<PresensiPage> createState() => _PresensiPageState();
@@ -27,12 +28,19 @@ class _PresensiPageState extends State<PresensiPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF48A2E6),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: widget.onBack,
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: Colors.white,
+          ),
+          onPressed: widget.onBack ?? () => Navigator.pop(context),
         ),
         title: const Text(
-          "Presensi",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Presensi',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
@@ -44,16 +52,18 @@ class _PresensiPageState extends State<PresensiPage> {
       ),
       body: Column(
         children: [
-          // ... (SISA KODE BODY TETAP SAMA SEPERTI SEBELUMNYA) ...
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 16,
+            ),
             color: const Color(0xFF48A2E6),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "MONITORING",
+                  'MONITORING',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
@@ -63,7 +73,7 @@ class _PresensiPageState extends State<PresensiPage> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  "Pilih kebutuhan presensi siswa bimbingan.",
+                  'Pilih kebutuhan presensi siswa bimbingan.',
                   style: TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ],
@@ -76,9 +86,9 @@ class _PresensiPageState extends State<PresensiPage> {
                 _buildOptionCard(
                   context,
                   icon: Icons.assignment_turned_in_outlined,
-                  title: "Buat Presensi",
+                  title: 'Buat Presensi',
                   subtitle:
-                      "Prototipe: data siswa dan status presensi belum dimuat dari backend.",
+                      'Prototipe: data siswa dan status presensi belum dimuat dari backend.',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -92,15 +102,13 @@ class _PresensiPageState extends State<PresensiPage> {
                 _buildOptionCard(
                   context,
                   icon: Icons.receipt_long_outlined,
-                  title: "Rekap Kehadiran",
-                  subtitle: "Lihat ringkasan dan riwayat kehadiran siswa.",
+                  title: 'Rekap Kehadiran',
+                  subtitle: 'Lihat ringkasan dan riwayat kehadiran siswa.',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Halaman Rekap Kehadiran belum tersedia.',
-                        ),
-                        behavior: SnackBarBehavior.floating,
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RekapKehadiranPage(),
                       ),
                     );
                   },
@@ -122,7 +130,7 @@ class _PresensiPageState extends State<PresensiPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          "Belum terhubung ke backend. Data presensi belum dimuat atau disimpan.",
+                          'Belum terhubung ke backend. Data presensi belum dimuat atau disimpan.',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue.shade800,
@@ -191,7 +199,10 @@ class _PresensiPageState extends State<PresensiPage> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),

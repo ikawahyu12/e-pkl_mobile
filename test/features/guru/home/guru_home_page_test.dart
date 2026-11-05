@@ -2,6 +2,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:e_pkl/data/models/dashboard_guru_model.dart';
 import 'package:e_pkl/data/repositories/dashboard_guru_repository.dart';
 import 'package:e_pkl/features/guru/home/guru_home_page.dart';
+import 'package:e_pkl/features/guru/agenda/agenda_page.dart';
 import 'package:e_pkl/features/guru/presensi/buat_presensi.dart';
 import 'package:e_pkl/shared/utils/guru_navigasi.dart';
 import 'package:flutter/material.dart';
@@ -184,13 +185,15 @@ void main() {
       expect(find.text('Buka notifikasi'), findsOneWidget);
     });
 
-    testWidgets('Agenda menampilkan snackbar (belum ada halamannya)', (
+    testWidgets('Agenda membuka halaman AgendaPage', (
       tester,
     ) async {
       await _pasang(tester);
       await tester.tap(find.text('Agenda'));
-      await tester.pump();
-      expect(find.text('Fitur ini segera hadir'), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AgendaPage), findsOneWidget);
+      expect(find.text('Agenda'), findsOneWidget);
     });
 
     testWidgets('gagal memuat -> tombol Coba lagi memuat ulang', (

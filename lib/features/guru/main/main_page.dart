@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../home/guru_home_page.dart';
-import '../presensi/presensi.dart';
+import '../monitoring/monitoring_page.dart';
 import '../profil/profil_guru_page.dart';
 
 import '../../../data/repositories/guru_auth_repository.dart';
@@ -33,7 +33,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 1:
         return const _HalamanBelumTersedia(judul: 'Siswa');
       case 2:
-        return PresensiPage(onBack: () => _pilihTab(0));
+        return const MonitoringPage();
       case 3:
         return ProfilGuruPage(onLogout: _keluar);
       default:
@@ -45,7 +45,6 @@ class _GuruMainPageState extends State<GuruMainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _halamanAktif(),
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
@@ -86,6 +85,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       ),
       (route) => false,
     );
+
     if (logoutError != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         messenger.showSnackBar(
