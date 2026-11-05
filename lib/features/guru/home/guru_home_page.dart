@@ -5,6 +5,7 @@ import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
+import '../agenda/agenda_page.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -183,12 +184,15 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 onTap: () => _buka(GuruTujuan.siswaBimbingan),
               ),
               EpklMenuCepatItem(
-                icon: Icons.calendar_today_outlined,
-                label: 'Agenda',
-                // Belum ada halaman Agenda di desain.
-                onTap: () => _snack('Fitur ini segera hadir'),
+              icon: Icons.calendar_today_outlined,
+              label: 'Agenda',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AgendaPage(),
+                ),
               ),
-            ],
+            ),
+                         ],
           ),
           const SizedBox(height: 20),
           EpklInfoTile(

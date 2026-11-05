@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../home/guru_home_page.dart';
-import '../presensi/presensi.dart';
+import '../monitoring/monitoring_page.dart';
 import '../profil/profil_guru_page.dart';
 
 class GuruMainPage extends StatefulWidget {
@@ -28,7 +28,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 1:
         return const _HalamanBelumTersedia(judul: 'Siswa');
       case 2:
-        return const PresensiPage();
+        return const MonitoringPage();
       case 3:
         return const ProfilGuruPage();
       default:
