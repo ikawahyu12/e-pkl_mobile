@@ -1,11 +1,13 @@
+import 'package:e_pkl/features/guru/agenda/agenda_page.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
-import '../agenda/agenda_page.dart';
+import '../validasi_jurnal/validasi_jurnal_page.dart';
 import '../penilaian/daftar_penilaian.dart';
+import '../presensi/buat_presensi.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -152,7 +154,14 @@ class _GuruHomePageState extends State<GuruHomePage> {
               icon: Icons.description,
               nilai: '${data.jumlahJurnal}',
               label: 'Jurnal',
-              onTap: () => _buka(GuruTujuan.jurnal),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ValidasiJurnalPage(),
+                  ),
+                );
+              },
             ),
             EpklStatTile(
               icon: Icons.star,
@@ -176,12 +185,21 @@ class _GuruHomePageState extends State<GuruHomePage> {
               EpklMenuCepatItem(
                 icon: Icons.schedule,
                 label: 'Absensi',
-                onTap: () => _buka(GuruTujuan.presensi),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => BuatPresensiPage()),
+                ),
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,
                 label: 'Validasi Jurnal',
-                onTap: () => _buka(GuruTujuan.jurnal),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ValidasiJurnalPage(),
+                    ),
+                  );
+                },
               ),
               EpklMenuCepatItem(
                 icon: Icons.star_border_rounded,
