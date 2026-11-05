@@ -5,6 +5,7 @@ import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
+import '../validasi_jurnal/validasi_jurnal_page.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -69,10 +70,9 @@ class _GuruHomePageState extends State<GuruHomePage> {
   void _snack(String pesan) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(pesan),
-        behavior: SnackBarBehavior.floating,
-      ));
+      ..showSnackBar(
+        SnackBar(content: Text(pesan), behavior: SnackBarBehavior.floating),
+      );
   }
 
   void _buka(GuruTujuan tujuan) {
@@ -104,11 +104,16 @@ class _GuruHomePageState extends State<GuruHomePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 40, color: EpklColors.teksSekunder),
+              const Icon(
+                Icons.error_outline,
+                size: 40,
+                color: EpklColors.teksSekunder,
+              ),
               const SizedBox(height: 12),
-              Text(_error ?? 'Data tidak tersedia',
-                  textAlign: TextAlign.center),
+              Text(
+                _error ?? 'Data tidak tersedia',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               OutlinedButton(onPressed: _muat, child: const Text('Coba lagi')),
             ],
@@ -147,7 +152,14 @@ class _GuruHomePageState extends State<GuruHomePage> {
               icon: Icons.description,
               nilai: '${data.jumlahJurnal}',
               label: 'Jurnal',
-              onTap: () => _buka(GuruTujuan.jurnal),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ValidasiJurnalPage(),
+                  ),
+                );
+              },
             ),
             EpklStatTile(
               icon: Icons.star,
@@ -167,15 +179,20 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 icon: Icons.schedule,
                 label: 'Absensi',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => BuatPresensiPage(),
-                  ),
+                  MaterialPageRoute<void>(builder: (_) => BuatPresensiPage()),
                 ),
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,
                 label: 'Validasi Jurnal',
-                onTap: () => _buka(GuruTujuan.jurnal),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ValidasiJurnalPage(),
+                    ),
+                  );
+                },
               ),
               EpklMenuCepatItem(
                 icon: Icons.star_border_rounded,
