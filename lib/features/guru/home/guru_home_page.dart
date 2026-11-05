@@ -5,6 +5,7 @@ import '../../../data/repositories/dashboard_guru_repository.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
 import '../agenda/agenda_page.dart';
+import '../penilaian/daftar_penilaian.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -159,8 +160,13 @@ class _GuruHomePageState extends State<GuruHomePage> {
               latarIkon: EpklColors.kuningSoft,
               nilai: '${data.jumlahPenilaian}',
               label: 'Penilaian',
-              // Penilaian diisi dari detail siswa, jadi arahkan ke tab Siswa.
-              onTap: () => _buka(GuruTujuan.siswaBimbingan),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const DaftarPenilaianPage(),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -180,18 +186,22 @@ class _GuruHomePageState extends State<GuruHomePage> {
               EpklMenuCepatItem(
                 icon: Icons.star_border_rounded,
                 label: 'Penilaian',
-                onTap: () => _buka(GuruTujuan.siswaBimbingan),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DaftarPenilaianPage(),
+                    ),
+                  );
+                },
               ),
               EpklMenuCepatItem(
-              icon: Icons.calendar_today_outlined,
-              label: 'Agenda',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AgendaPage(),
+                icon: Icons.calendar_today_outlined,
+                label: 'Agenda',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const AgendaPage()),
                 ),
               ),
-            ),
-                         ],
+            ],
           ),
           const SizedBox(height: 20),
           EpklInfoTile(

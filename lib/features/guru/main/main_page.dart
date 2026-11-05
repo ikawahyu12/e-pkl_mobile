@@ -6,6 +6,7 @@ import '../profil/profil_guru_page.dart';
 
 import '../../../data/repositories/guru_auth_repository.dart';
 import '../auth/guru_login_page.dart';
+import '../siswa_bimbingan/siswa_bimbingan_page.dart';
 
 class GuruMainPage extends StatefulWidget {
   final GuruAuthRepository repository;
@@ -31,7 +32,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 0:
         return GuruHomePage(onPindahTab: _pilihTab);
       case 1:
-        return const _HalamanBelumTersedia(judul: 'Siswa');
+        return const SiswaBimbinganPage();
       case 2:
         return const MonitoringPage();
       case 3:

@@ -6,6 +6,7 @@ import 'data/repositories/guru_auth_repository_api.dart';
 import 'features/guru/auth/guru_splash_page.dart';
 import 'features/guru/presensi/buat_presensi.dart';
 import 'shared/widgets/epkl_widgets.dart';
+import 'features/guru/notifikasi/notifikasi_route.dart';
 
 // Repository autentikasi Guru digunakan bersama oleh halaman aplikasi.
 final guruAuthRepository = GuruAuthRepositoryApi();
@@ -38,12 +39,21 @@ class MyApp extends StatelessWidget {
       home: GuruSplashPage(repository: repository ?? guruAuthRepository),
 
       onGenerateRoute: (settings) {
+        // Rute Notifikasi Guru
+        final routeNotifikasi = ruteNotifikasi(settings);
+        if (routeNotifikasi != null) {
+          return routeNotifikasi;
+        }
+
+        // Rute Buat Presensi
         if (settings.name == '/guru/presensi') {
           return MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => const BuatPresensiPage(),
           );
         }
+
+        // Halaman yang belum tersedia
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (context) => Scaffold(

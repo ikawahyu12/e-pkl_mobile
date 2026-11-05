@@ -57,11 +57,13 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
   void _snack(String pesan, {bool error = false}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(pesan),
-        backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(pesan),
+          backgroundColor: error ? Colors.red.shade600 : Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Future<void> _editProfil() async {
@@ -100,8 +102,10 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Keluar',
-                style: TextStyle(color: Color(0xFFE11D48))),
+            child: const Text(
+              'Keluar',
+              style: TextStyle(color: Color(0xFFE11D48)),
+            ),
           ),
         ],
       ),
@@ -133,7 +137,10 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
         title: const Text(
           'Profil Akun',
           style: TextStyle(
-              color: _teks, fontWeight: FontWeight.w700, fontSize: 22),
+            color: _teks,
+            fontWeight: FontWeight.w700,
+            fontSize: 22,
+          ),
         ),
       ),
       body: SafeArea(child: _isi()),
@@ -153,8 +160,10 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
             children: [
               const Icon(Icons.error_outline, size: 40, color: _teksSekunder),
               const SizedBox(height: 12),
-              Text(_error ?? 'Data tidak tersedia',
-                  textAlign: TextAlign.center),
+              Text(
+                _error ?? 'Data tidak tersedia',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               OutlinedButton(onPressed: _muat, child: const Text('Coba lagi')),
             ],
@@ -172,11 +181,13 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
           _KartuProfil(profil: p),
           const SizedBox(height: 20),
           const _JudulSeksi('Informasi akun'),
-          _KartuInfo(rows: [
-            ('NIP', p.nip),
-            ('Sekolah', p.sekolah),
-            ('Bimbingan', p.bimbingan),
-          ]),
+          _KartuInfo(
+            rows: [
+              ('NIP', p.nip),
+              ('Sekolah', p.sekolah),
+              ('Bimbingan', p.bimbingan),
+            ],
+          ),
           const SizedBox(height: 20),
           const _JudulSeksi('Pengaturan'),
           Container(
@@ -203,9 +214,11 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
                   icon: Icons.notifications_active_outlined,
                   warna: const Color(0xFFD97706),
                   latar: const Color(0xFFFFF1C2),
-                  judul: 'Preferensi notifikasi',
-                  subjudul: 'Atur pengingat dan pembaruan',
-                  onTap: () => _snack('Fitur ini segera hadir'),
+                  judul: 'Notifikasi',
+                  subjudul: 'Lihat pemberitahuan dan pembaruan',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/guru/notifikasi');
+                  },
                 ),
                 _MenuItem(
                   icon: Icons.help_outline,
@@ -236,10 +249,13 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
                 children: [
                   Icon(Icons.logout, color: Color(0xFFE11D48), size: 20),
                   SizedBox(width: 8),
-                  Text('Keluar dari akun',
-                      style: TextStyle(
-                          color: Color(0xFFE11D48),
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    'Keluar dari akun',
+                    style: TextStyle(
+                      color: Color(0xFFE11D48),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -251,10 +267,10 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
 }
 
 BoxDecoration _dekorKartu() => BoxDecoration(
-      color: const Color(0xFFF9FAFB),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: _border),
-    );
+  color: const Color(0xFFF9FAFB),
+  borderRadius: BorderRadius.circular(12),
+  border: Border.all(color: _border),
+);
 
 class _KartuProfil extends StatelessWidget {
   final ProfilGuru profil;
@@ -280,7 +296,10 @@ class _KartuProfil extends StatelessWidget {
             child: Text(
               profil.inisial,
               style: const TextStyle(
-                  color: _biru, fontSize: 24, fontWeight: FontWeight.w800),
+                color: _biru,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -291,24 +310,33 @@ class _KartuProfil extends StatelessWidget {
                 Text(
                   profil.nama,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(profil.peran,
-                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+                Text(
+                  profil.peran,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.apartment, color: Colors.white70, size: 14),
+                    const Icon(
+                      Icons.apartment,
+                      color: Colors.white70,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         profil.sekolah,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -328,11 +356,16 @@ class _JudulSeksi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(teks,
-            style: const TextStyle(
-                color: _teks, fontWeight: FontWeight.w700, fontSize: 15)),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      teks,
+      style: const TextStyle(
+        color: _teks,
+        fontWeight: FontWeight.w700,
+        fontSize: 15,
+      ),
+    ),
+  );
 }
 
 class _KartuInfo extends StatelessWidget {
@@ -358,16 +391,23 @@ class _KartuInfo extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 90,
-                    child: Text(rows[i].$1,
-                        style: const TextStyle(
-                            color: _teksSekunder, fontSize: 13)),
+                    child: Text(
+                      rows[i].$1,
+                      style: const TextStyle(
+                        color: _teksSekunder,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   Expanded(
-                    child: Text(rows[i].$2,
-                        style: const TextStyle(
-                            color: _teks,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      rows[i].$2,
+                      style: const TextStyle(
+                        color: _teks,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -414,7 +454,9 @@ class _MenuItem extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  color: latar, borderRadius: BorderRadius.circular(12)),
+                color: latar,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(icon, color: warna),
             ),
             const SizedBox(width: 12),
@@ -422,15 +464,19 @@ class _MenuItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(judul,
-                      style: const TextStyle(
-                          color: _teks,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14)),
+                  Text(
+                    judul,
+                    style: const TextStyle(
+                      color: _teks,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subjudul,
-                      style: const TextStyle(
-                          color: _teksSekunder, fontSize: 12)),
+                  Text(
+                    subjudul,
+                    style: const TextStyle(color: _teksSekunder, fontSize: 12),
+                  ),
                 ],
               ),
             ),
