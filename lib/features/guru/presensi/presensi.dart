@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'buat_presensi.dart';
-import '../monitoring/monitoring_page.dart';
+import '../rekap_kehadiran/rekap_kehadiran.dart';
+
 class PresensiPage extends StatefulWidget {
   const PresensiPage({super.key});
 
@@ -112,12 +113,10 @@ class _PresensiPageState extends State<PresensiPage> {
                         subtitle:
                             "Lihat ringkasan dan riwayat kehadiran siswa.",
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Halaman Rekap Kehadiran belum tersedia.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RekapKehadiranPage(),
                             ),
                           );
                         },
