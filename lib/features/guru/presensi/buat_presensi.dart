@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class BuatPresensiPage extends StatefulWidget {
-  const BuatPresensiPage({Key? key}) : super(key: key);
+  const BuatPresensiPage({super.key});
 
   @override
   State<BuatPresensiPage> createState() => _BuatPresensiPageState();
@@ -24,8 +24,6 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
   // UBAH TIPE DATA MENJADI TimeOfDay AGAR BISA DIUBAH
   TimeOfDay _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
   TimeOfDay _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
-
-  bool _isSaving = false;
 
   // Data siswa
   final List<Map<String, dynamic>> _siswaList = [
@@ -72,7 +70,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
         );
       },
     );
-    if (picked != null && picked != _selectedDate) {
+    if (mounted && picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
     }
   }
@@ -96,7 +94,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
       },
     );
 
-    if (picked != null) {
+    if (mounted && picked != null) {
       setState(() {
         if (isCheckIn) {
           _jamCheckIn = picked;
@@ -156,42 +154,22 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
     );
   }
 
-  Future<void> _simpanPresensi() async {
-    setState(() => _isSaving = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isSaving = false);
-
-    if (mounted) {
-      // Format jam ke string untuk dikirim ke API
-      String formattedCheckIn =
-          '${_jamCheckIn.hour.toString().padLeft(2, '0')}:${_jamCheckIn.minute.toString().padLeft(2, '0')}';
-      String formattedCheckOut =
-          '${_jamCheckOut.hour.toString().padLeft(2, '0')}:${_jamCheckOut.minute.toString().padLeft(2, '0')}';
-
-      print("=== DATA YANG DIKIRIM ===");
-      print("Instansi: $_selectedInstansi");
-      print("Tanggal : ${DateFormat('yyyy-MM-dd').format(_selectedDate)}");
-      print("Shift   : $_selectedShift");
-      print("Batas Check-In : $formattedCheckIn");
-      print("Batas Check-Out: $formattedCheckOut");
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Berhasil'),
-          content: const Text('Data presensi berhasil disimpan.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('OK'),
-            ),
-          ],
+  void _simpanPresensi() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Backend belum tersedia'),
+        content: const Text(
+          'Form ini masih berupa prototipe. Data presensi belum disimpan.',
         ),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -218,15 +196,31 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          Card(
+            color: Colors.amber.shade50,
+            child: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'Mode prototipe: data siswa dan instansi contoh. Backend presensi belum tersedia; data tidak akan disimpan.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           _buildLabel("PILIH INSTANSI"),
           DropdownButtonFormField<String>(
-            value: _selectedInstansi,
+            initialValue: _selectedInstansi,
+            isExpanded: true,
             decoration: _inputDecoration(),
             icon: const Icon(Icons.business, color: Colors.blue),
             items: _instansiList.map((String instansi) {
               return DropdownMenuItem<String>(
                 value: instansi,
-                child: Text(instansi, style: const TextStyle(fontSize: 14)),
+                child: Text(
+                  instansi,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14),
+                ),
               );
             }).toList(),
             onChanged: (newValue) {
@@ -244,16 +238,21 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    DateFormat(
-                      'EEEE, d MMMM yyyy',
-                      'id_ID',
-                    ).format(_selectedDate),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      DateFormat(
+                        'EEEE, d MMMM yyyy',
+                        'id_ID',
+                      ).format(_selectedDate),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   const Icon(
                     Icons.calendar_today,
                     size: 18,
@@ -266,120 +265,118 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
           const SizedBox(height: 16),
 
           _buildLabel("PILIH SHIFT"),
-          Row(
-            children: [
-              Expanded(
-                child: _buildShiftCard(
-                  "Shift Pagi",
-                  "07:00 - 12:00",
-                  _selectedShift == 'Pagi',
-                  () => setState(() {
-                    _selectedShift = 'Pagi';
-                    // Opsional: Reset jam ke default jika ganti shift
-                    _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
-                    _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
-                  }),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildShiftCard(
-                  "Shift Sore",
-                  "13:00 - 17:00",
-                  _selectedShift == 'Sore',
-                  () => setState(() {
-                    _selectedShift = 'Sore';
-                    // Opsional: Reset jam ke default jika ganti shift
-                    _jamCheckIn = const TimeOfDay(hour: 12, minute: 0);
-                    _jamCheckOut = const TimeOfDay(hour: 17, minute: 0);
-                  }),
-                ),
-              ),
-            ],
+          _responsivePair(
+            _buildShiftCard(
+              "Shift Pagi",
+              "07:00 - 12:00",
+              _selectedShift == 'Pagi',
+              () => setState(() {
+                _selectedShift = 'Pagi';
+                _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
+                _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
+              }),
+            ),
+            _buildShiftCard(
+              "Shift Sore",
+              "13:00 - 17:00",
+              _selectedShift == 'Sore',
+              () => setState(() {
+                _selectedShift = 'Sore';
+                _jamCheckIn = const TimeOfDay(hour: 12, minute: 0);
+                _jamCheckOut = const TimeOfDay(hour: 17, minute: 0);
+              }),
+            ),
           ),
           const SizedBox(height: 16),
 
           // --- BAGIAN JAM YANG SUDAH DINAMIS ---
-          Row(
-            children: [
-              Expanded(
-                child: _buildTimeInfo(
-                  "BATAS CHECK-IN",
-                  timeCheckInStr,
-                  () => _pilihJam(true), // Panggil fungsi ubah jam Check-In
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTimeInfo(
-                  "BATAS CHECK-OUT",
-                  timeCheckOutStr,
-                  () => _pilihJam(false), // Panggil fungsi ubah jam Check-Out
-                ),
-              ),
-            ],
+          _responsivePair(
+            _buildTimeInfo(
+              "BATAS CHECK-IN",
+              timeCheckInStr,
+              () => _pilihJam(true),
+            ),
+            _buildTimeInfo(
+              "BATAS CHECK-OUT",
+              timeCheckOutStr,
+              () => _pilihJam(false),
+            ),
           ),
           const SizedBox(height: 24),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               _buildLabel("PILIH SISWA"),
-              Row(
-                children: [
-                  TextButton.icon(
-                    onPressed: _tambahSiswa,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text("Tambah", style: TextStyle(fontSize: 12)),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      bool allSelected = _siswaList.every(
-                        (s) => s['hadir'] == true,
-                      );
-                      setState(() {
-                        for (var s in _siswaList) {
-                          s['hadir'] = !allSelected;
-                        }
-                      });
-                    },
-                    child: const Text(
-                      "Pilih Semua",
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+              TextButton.icon(
+                onPressed: _tambahSiswa,
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text("Tambah", style: TextStyle(fontSize: 12)),
+              ),
+              TextButton(
+                onPressed: () {
+                  final allSelected = _siswaList.every(
+                    (s) => s['hadir'] == true,
+                  );
+                  setState(() {
+                    for (final siswa in _siswaList) {
+                      siswa['hadir'] = !allSelected;
+                    }
+                  });
+                },
+                child: const Text(
+                  "Pilih Semua",
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          ..._siswaList.map((siswa) => _buildSiswaCard(siswa)).toList(),
+          ..._siswaList.map(_buildSiswaCard),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _isSaving ? null : _simpanPresensi,
+              onPressed: _simpanPresensi,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF48A2E6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isSaving
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      "Simpan Absensi",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+              child: const Text(
+                "Simpan Absensi",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _responsivePair(Widget first, Widget second) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360) {
+          return Column(children: [first, const SizedBox(height: 12), second]);
+        }
+        return Row(
+          children: [
+            Expanded(child: first),
+            const SizedBox(width: 12),
+            Expanded(child: second),
+          ],
+        );
+      },
     );
   }
 
@@ -389,6 +386,8 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
@@ -452,28 +451,34 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
               size: 20,
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: isSelected
-                        ? const Color(0xFF48A2E6)
-                        : Colors.black87,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: isSelected
+                          ? const Color(0xFF48A2E6)
+                          : Colors.black87,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isSelected ? const Color(0xFF48A2E6) : Colors.grey,
+                  const SizedBox(height: 2),
+                  Text(
+                    time,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSelected ? const Color(0xFF48A2E6) : Colors.grey,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -498,6 +503,8 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
           children: [
             Text(
               title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 10,
                 color: Colors.grey,
@@ -508,11 +515,15 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    time,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const Icon(
@@ -540,7 +551,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: const Color(0xFF48A2E6).withOpacity(0.2),
+            backgroundColor: const Color(0xFF48A2E6).withValues(alpha: 0.2),
             child: Text(
               siswa['nama'].substring(0, 2).toUpperCase(),
               style: const TextStyle(

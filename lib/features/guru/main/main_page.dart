@@ -4,8 +4,13 @@ import '../home/guru_home_page.dart';
 import '../monitoring/monitoring_page.dart';
 import '../profil/profil_guru_page.dart';
 
+import '../../../data/repositories/guru_auth_repository.dart';
+import '../auth/guru_login_page.dart';
+
 class GuruMainPage extends StatefulWidget {
-  const GuruMainPage({super.key});
+  final GuruAuthRepository repository;
+
+  const GuruMainPage({super.key, required this.repository});
 
   @override
   State<GuruMainPage> createState() => _GuruMainPageState();
@@ -30,7 +35,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 2:
         return const MonitoringPage();
       case 3:
-        return const ProfilGuruPage();
+        return ProfilGuruPage(onLogout: _keluar);
       default:
         return GuruHomePage(onPindahTab: _pilihTab);
     }
@@ -40,7 +45,6 @@ class _GuruMainPageState extends State<GuruMainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _halamanAktif(),
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
@@ -58,6 +62,41 @@ class _GuruMainPageState extends State<GuruMainPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _keluar() async {
+    GuruAuthException? logoutError;
+    try {
+      await widget.repository.keluar();
+    } on GuruAuthException catch (error) {
+      logoutError = error;
+    } catch (_) {
+      logoutError = const GuruAuthException(
+        'Sesi lokal tidak dapat dibersihkan sepenuhnya.',
+      );
+    }
+
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => GuruLoginPage(repository: widget.repository),
+      ),
+      (route) => false,
+    );
+
+    if (logoutError != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              '${logoutError!.message} Anda sudah keluar dari aplikasi.',
+            ),
+          ),
+        );
+      });
+    }
   }
 }
 

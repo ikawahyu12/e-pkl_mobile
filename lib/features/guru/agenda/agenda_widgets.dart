@@ -151,12 +151,16 @@ class StripTanggalAgenda extends StatelessWidget {
   Widget _buildHeaderBulan() {
     return Row(
       children: [
-        Text(
-          DateFormat('MMMM y', 'id_ID').format(dipilih),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: _gelap,
+        Flexible(
+          child: Text(
+            DateFormat('MMMM y', 'id_ID').format(dipilih),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: _gelap,
+            ),
           ),
         ),
         const Icon(Icons.keyboard_arrow_down, size: 20, color: _gelap),

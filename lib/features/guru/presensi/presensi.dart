@@ -3,32 +3,22 @@ import 'buat_presensi.dart';
 import '../rekap_kehadiran/rekap_kehadiran.dart';
 
 class PresensiPage extends StatefulWidget {
-  const PresensiPage({super.key});
+  final VoidCallback? onBack;
+
+  const PresensiPage({super.key, this.onBack});
 
   @override
   State<PresensiPage> createState() => _PresensiPageState();
 }
 
 class _PresensiPageState extends State<PresensiPage> {
-  bool _isLoading = false;
-  String _infoMessage = 'Presensi hari ini dapat diisi sampai pukul 16.00 WIB.';
-  bool _isPresensiHariIniSelesai = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchDataPresensi();
-  }
-
-  Future<void> _fetchDataPresensi() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    if (!mounted) return;
-    setState(() {
-      _isPresensiHariIniSelesai = false;
-      _infoMessage = 'Presensi hari ini dapat diisi sampai pukul 16.00 WIB.';
-      _isLoading = false;
-    });
+  void _tampilkanStatusBackend() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Backend presensi belum tersedia; data belum dimuat.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -38,32 +28,42 @@ class _PresensiPageState extends State<PresensiPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF48A2E6),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: Colors.white,
+          ),
+          onPressed: widget.onBack ?? () => Navigator.pop(context),
         ),
         title: const Text(
-          "Presensi",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Presensi',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _fetchDataPresensi,
+            tooltip: 'Periksa status backend',
+            onPressed: _tampilkanStatusBackend,
           ),
         ],
       ),
       body: Column(
         children: [
-          // ... (SISA KODE BODY TETAP SAMA SEPERTI SEBELUMNYA) ...
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 16,
+            ),
             color: const Color(0xFF48A2E6),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "MONITORING",
+                  'MONITORING',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
@@ -73,93 +73,75 @@ class _PresensiPageState extends State<PresensiPage> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  "Pilih kebutuhan presensi siswa bimbingan.",
+                  'Pilih kebutuhan presensi siswa bimbingan.',
                   style: TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsets.all(24),
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                _buildOptionCard(
+                  context,
+                  icon: Icons.assignment_turned_in_outlined,
+                  title: 'Buat Presensi',
+                  subtitle:
+                      'Prototipe: data siswa dan status presensi belum dimuat dari backend.',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BuatPresensiPage(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildOptionCard(
+                  context,
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Rekap Kehadiran',
+                  subtitle: 'Lihat ringkasan dan riwayat kehadiran siswa.',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RekapKehadiranPage(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
                     children: [
-                      _buildOptionCard(
-                        context,
-                        icon: Icons.assignment_turned_in_outlined,
-                        title: "Buat Presensi",
-                        subtitle: _isPresensiHariIniSelesai
-                            ? "Presensi hari ini sudah dibuat."
-                            : "Catat kehadiran seluruh siswa untuk hari ini.",
-                        onTap: _isPresensiHariIniSelesai
-                            ? null
-                            : () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const BuatPresensiPage(),
-                                  ),
-                                );
-                                _fetchDataPresensi();
-                              },
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.blue,
+                        size: 20,
                       ),
-                      const SizedBox(height: 16),
-                      _buildOptionCard(
-                        context,
-                        icon: Icons.receipt_long_outlined,
-                        title: "Rekap Kehadiran",
-                        subtitle:
-                            "Lihat ringkasan dan riwayat kehadiran siswa.",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const RekapKehadiranPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _isPresensiHariIniSelesai
-                              ? Colors.green.shade50
-                              : Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _isPresensiHariIniSelesai
-                                  ? Icons.check_circle_outline
-                                  : Icons.info_outline,
-                              color: _isPresensiHariIniSelesai
-                                  ? Colors.green
-                                  : Colors.blue,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _isPresensiHariIniSelesai
-                                    ? "Presensi untuk hari ini telah berhasil disimpan."
-                                    : _infoMessage,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _isPresensiHariIniSelesai
-                                      ? Colors.green.shade800
-                                      : Colors.blue.shade800,
-                                ),
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Belum terhubung ke backend. Data presensi belum dimuat atau disimpan.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade800,
+                          ),
                         ),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -217,7 +199,10 @@ class _PresensiPageState extends State<PresensiPage> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),

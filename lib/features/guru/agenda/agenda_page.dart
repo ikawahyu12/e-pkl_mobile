@@ -87,19 +87,27 @@ class _AgendaPageState extends State<AgendaPage> {
 
   Widget _buildJudulHari(int jumlah) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          DateFormat('EEEE, d MMMM', 'id_ID').format(_dipilih),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+        Expanded(
+          child: Text(
+            DateFormat('EEEE, d MMMM', 'id_ID').format(_dipilih),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           '$jumlah kunjungan',
-          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          maxLines: 1,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF64748B),
+          ),
         ),
       ],
     );

@@ -1,4 +1,3 @@
-import 'package:e_pkl/features/guru/presensi/buat_presensi.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/models/dashboard_guru_model.dart';
@@ -70,10 +69,9 @@ class _GuruHomePageState extends State<GuruHomePage> {
   void _snack(String pesan) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(pesan),
-        behavior: SnackBarBehavior.floating,
-      ));
+      ..showSnackBar(
+        SnackBar(content: Text(pesan), behavior: SnackBarBehavior.floating),
+      );
   }
 
   void _buka(GuruTujuan tujuan) {
@@ -105,11 +103,16 @@ class _GuruHomePageState extends State<GuruHomePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 40, color: EpklColors.teksSekunder),
+              const Icon(
+                Icons.error_outline,
+                size: 40,
+                color: EpklColors.teksSekunder,
+              ),
               const SizedBox(height: 12),
-              Text(_error ?? 'Data tidak tersedia',
-                  textAlign: TextAlign.center),
+              Text(
+                _error ?? 'Data tidak tersedia',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               OutlinedButton(onPressed: _muat, child: const Text('Coba lagi')),
             ],
@@ -167,11 +170,7 @@ class _GuruHomePageState extends State<GuruHomePage> {
               EpklMenuCepatItem(
                 icon: Icons.schedule,
                 label: 'Absensi',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => BuatPresensiPage(),
-                  ),
-                ),
+                onTap: () => _buka(GuruTujuan.presensi),
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,

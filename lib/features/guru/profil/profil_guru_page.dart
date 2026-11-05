@@ -15,7 +15,7 @@ class ProfilGuruPage extends StatefulWidget {
   final ProfilGuruRepository? repository;
 
   /// Dipanggil setelah logout berhasil (arahkan ke halaman login).
-  final VoidCallback? onLogout;
+  final Future<void> Function()? onLogout;
 
   const ProfilGuruPage({super.key, this.repository, this.onLogout});
 
@@ -108,10 +108,15 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
     );
     if (yakin != true) return;
     try {
-      await _repo.logout();
-      widget.onLogout?.call();
+      if (widget.onLogout != null) {
+        await widget.onLogout!();
+      } else {
+        await _repo.logout();
+      }
     } catch (_) {
-      _snack('Gagal keluar dari akun. Coba lagi.', error: true);
+      if (mounted) {
+        _snack('Gagal keluar dari akun. Coba lagi.', error: true);
+      }
     }
   }
 

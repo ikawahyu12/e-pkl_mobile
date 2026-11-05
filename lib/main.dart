@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-import 'features/guru/home/guru_home_page.dart';
-import 'features/guru/presensi/presensi.dart';
-import 'features/guru/profil/profil_guru_page.dart';
-import 'features/guru/siswa_bimbingan/siswa_bimbingan_page.dart';
-import 'features/guru/notifikasi/notifikasi_guru_page.dart';
+import 'data/repositories/guru_auth_repository.dart';
+import 'data/repositories/guru_auth_repository_api.dart';
+import 'features/guru/auth/guru_splash_page.dart';
+import 'features/guru/presensi/buat_presensi.dart';
 import 'shared/widgets/epkl_widgets.dart';
 
-Future<void> main() async {
+// Repository autentikasi Guru digunakan bersama oleh halaman aplikasi.
+final guruAuthRepository = GuruAuthRepositoryApi();
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inisialisasi format tanggal bahasa Indonesia.
   await initializeDateFormatting('id_ID', null);
 
-  runApp(const EPKLApp());
+  runApp(const MyApp());
 }
 
-class EPKLApp extends StatelessWidget {
-  const EPKLApp({super.key});
+class MyApp extends StatelessWidget {
+  final GuruAuthRepository? repository;
+
+  const MyApp({super.key, this.repository});
 
   @override
   Widget build(BuildContext context) {
@@ -27,71 +32,28 @@ class EPKLApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: EpklColors.biru),
         useMaterial3: true,
-        scaffoldBackgroundColor: Colors.white,
       ),
-      home: const GuruMainPage(),
-    );
-  }
-}
 
-class GuruMainPage extends StatefulWidget {
-  const GuruMainPage({super.key});
+      // Aplikasi dimulai dari Splash Screen Guru.
+      home: GuruSplashPage(repository: repository ?? guruAuthRepository),
 
-  @override
-  State<GuruMainPage> createState() => _GuruMainPageState();
-}
-
-class _GuruMainPageState extends State<GuruMainPage> {
-  int _index = 0;
-
-  void _pindahTab(int index) {
-    setState(() {
-      _index = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final halaman = <Widget>[
-      GuruHomePage(onPindahTab: _pindahTab),
-      const SiswaBimbinganPage(),
-      const PresensiPage(),
-      const ProfilGuruPage(),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(index: _index, children: halaman),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: _pindahTab,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: EpklColors.biru,
-        unselectedItemColor: EpklColors.teksSekunder,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Beranda',
+      onGenerateRoute: (settings) {
+        if (settings.name == '/guru/presensi') {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const BuatPresensiPage(),
+          );
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (context) => Scaffold(
+            appBar: EpklGradientAppBar(judul: '${settings.name}'),
+            body: Center(
+              child: Text('Halaman ${settings.name} belum tersedia.'),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.groups_outlined),
-            activeIcon: Icon(Icons.groups_rounded),
-            label: 'Siswa',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fact_check_outlined),
-            activeIcon: Icon(Icons.fact_check_rounded),
-            label: 'Monitoring',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Profil',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
