@@ -6,6 +6,9 @@ abstract class NotifikasiRepository {
   Future<List<Notifikasi>> ambilNotifikasi();
   Future<void> tandaiDibaca(String id);
   Future<void> tandaiSemuaDibaca();
+
+  /// Jumlah notifikasi yang belum dibaca (untuk titik merah di lonceng).
+  Future<int> jumlahBelumDibaca();
 }
 
 /// Data dummy supaya UI bisa jalan sebelum API tersedia.
@@ -82,5 +85,10 @@ class NotifikasiRepositoryMock implements NotifikasiRepository {
   Future<void> tandaiSemuaDibaca() async {
     await Future.delayed(const Duration(milliseconds: 300));
     _data = _data.map((n) => n.copyWith(dibaca: true)).toList();
+  }
+
+  @override
+  Future<int> jumlahBelumDibaca() async {
+    return _data.where((n) => !n.dibaca).length;
   }
 }

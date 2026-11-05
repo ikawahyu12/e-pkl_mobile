@@ -31,6 +31,54 @@ class PenilaianRepositoryMock implements PenilaianRepository {
       catatan: 'Praktik berjalan baik dan konsisten.',
       disimpanPada: DateTime.now().subtract(const Duration(days: 1)),
     ),
+    's02': Penilaian(
+      siswaId: 's02',
+      nilai: const [80, 82, 79, 81, 84],
+      catatan: 'Perlu meningkatkan inisiatif dalam menyelesaikan tugas.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 3)),
+    ),
+    's03': Penilaian(
+      siswaId: 's03',
+      nilai: const [88, 85, 87, 84, 90],
+      catatan: 'Kerja bagus dan teliti.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 3)),
+    ),
+    's04': Penilaian(
+      siswaId: 's04',
+      nilai: const [70, 72, 68, 70, 74],
+      catatan: 'Perlu pendampingan lebih terkait kedisiplinan.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 4)),
+    ),
+    's05': Penilaian(
+      siswaId: 's05',
+      nilai: const [92, 90, 91, 89, 93],
+      catatan: 'Sangat baik, aktif dan komunikatif.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    's07': Penilaian(
+      siswaId: 's07',
+      nilai: const [84, 86, 83, 88, 85],
+      catatan: 'Kreatif dalam mengerjakan desain.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    's08': Penilaian(
+      siswaId: 's08',
+      nilai: const [76, 78, 75, 77, 80],
+      catatan: 'Cukup baik, tingkatkan konsistensi.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    's09': Penilaian(
+      siswaId: 's09',
+      nilai: const [89, 87, 90, 86, 91],
+      catatan: 'Disiplin dan bertanggung jawab.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 6)),
+    ),
+    's10': Penilaian(
+      siswaId: 's10',
+      nilai: const [81, 79, 83, 80, 82],
+      catatan: 'Perkembangan baik, terus tingkatkan.',
+      disimpanPada: DateTime.now().subtract(const Duration(days: 6)),
+    ),
   };
 
   @override
