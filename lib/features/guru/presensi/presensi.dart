@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'buat_presensi.dart';
-
-// ✅ IMPORT HALAMAN UTAMA (BERANDA)
-import '../main/main_page.dart'; // Sesuaikan path-nya dengan struktur folder Anda!
+import '../rekap_kehadiran/rekap_kehadiran.dart';
 
 class PresensiPage extends StatefulWidget {
   const PresensiPage({super.key});
@@ -41,16 +39,7 @@ class _PresensiPageState extends State<PresensiPage> {
         backgroundColor: const Color(0xFF48A2E6),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          // 👇 UBAH BAGIAN INI 👇
-          onPressed: () {
-            // Kembali ke halaman utama (Beranda) dan hapus semua history sebelumnya
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const GuruMainPage()),
-              (route) =>
-                  false, // (route) => false akan menghapus semua halaman di belakangnya
-            );
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Presensi",
@@ -124,12 +113,10 @@ class _PresensiPageState extends State<PresensiPage> {
                         subtitle:
                             "Lihat ringkasan dan riwayat kehadiran siswa.",
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Halaman Rekap Kehadiran belum tersedia.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RekapKehadiranPage(),
                             ),
                           );
                         },
