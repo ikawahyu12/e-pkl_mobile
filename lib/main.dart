@@ -32,6 +32,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: EpklColors.biru),
+        fontFamily: 'Montserrat',
         useMaterial3: true,
       ),
 

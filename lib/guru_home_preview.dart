@@ -17,6 +17,7 @@ class _Preview extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: EpklColors.biru),
+        fontFamily: 'Montserrat',
       ),
       onGenerateRoute: (s) => MaterialPageRoute(
         settings: s,
