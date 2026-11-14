@@ -1,8 +1,10 @@
+// Simpan di: lib/features/guru/agenda/agenda_data.dart (timpa file lama)
 import 'package:intl/intl.dart';
 
 enum StatusAgenda { terjadwal, selesai }
 
 class AgendaItem {
+  final int? id;
   final String jam;
   final String perusahaan;
   final String alamat;
@@ -12,6 +14,7 @@ class AgendaItem {
   final String? catatan;
 
   const AgendaItem({
+    this.id,
     required this.jam,
     required this.perusahaan,
     required this.alamat,
@@ -20,85 +23,61 @@ class AgendaItem {
     required this.status,
     this.catatan,
   });
+
+  /// Key mengikuti respons AgendaController di Laravel.
+  factory AgendaItem.fromJson(Map<String, dynamic> j) {
+    final daftarSiswa = (j['siswa'] as List? ?? []).whereType<Map>().toList();
+
+    final nama = daftarSiswa
+        .map((s) => s['nama']?.toString() ?? '')
+        .where((n) => n.isNotEmpty)
+        .join(' & ');
+    final kelas = daftarSiswa
+        .map((s) => s['kelas']?.toString() ?? '')
+        .where((k) => k.isNotEmpty)
+        .toSet()
+        .join(', ');
+
+    final catatan = j['catatan']?.toString().trim();
+
+    return AgendaItem(
+      id: (j['id'] as num?)?.toInt(),
+      jam: '${_jam(j['jam_mulai'])}-${_jam(j['jam_selesai'])} WIB',
+      perusahaan: j['perusahaan']?.toString() ?? '-',
+      alamat: j['alamat']?.toString() ?? '-',
+      siswa: nama.isEmpty ? '-' : nama,
+      kelas: kelas,
+      status: j['status'] == 'selesai'
+          ? StatusAgenda.selesai
+          : StatusAgenda.terjadwal,
+      catatan: (catatan == null || catatan.isEmpty) ? null : catatan,
+    );
+  }
+
+  AgendaItem copyWith({StatusAgenda? status}) => AgendaItem(
+        id: id,
+        jam: jam,
+        perusahaan: perusahaan,
+        alamat: alamat,
+        siswa: siswa,
+        kelas: kelas,
+        status: status ?? this.status,
+        catatan: catatan,
+      );
 }
 
-// ============================================================
-// DATA PALSU (sementara). Nanti ganti dengan data dari backend.
-// ============================================================
+/// "09:00" -> "09.00"
+String _jam(dynamic nilai) {
+  final s = nilai?.toString() ?? '';
+  final hhmm = s.length >= 5 ? s.substring(0, 5) : s;
+  return hhmm.replaceAll(':', '.');
+}
 
-/// "Hari ini" versi dummy, supaya sama dengan desain (Rabu, 18 November 2026).
-/// Saat backend siap, ganti dengan DateTime.now().
-final DateTime hariIniDummy = DateTime(2026, 11, 18);
+/// Tanggal hari ini (dibuat fungsi supaya selalu terbaru).
+DateTime hariIni() {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day);
+}
 
 /// Kunci tanggal untuk map agenda, formatnya yyyy-MM-dd.
 String kunciTanggal(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
-
-// Bukan const supaya jadwal baru bisa ditambahkan (sementara, tanpa backend).
-final Map<String, List<AgendaItem>> dummyAgenda = {
-  '2026-11-16': [
-    AgendaItem(
-      jam: '09.00-10.00 WIB',
-      perusahaan: 'PT Digital Nusantara',
-      alamat: 'Jl. Asia Afrika No. 10, Bandung',
-      siswa: 'Rani Putri & Dika Saputra',
-      kelas: 'XI RPL',
-      status: StatusAgenda.selesai,
-    ),
-  ],
-  '2026-11-18': [
-    AgendaItem(
-      jam: '09.00-10.00 WIB',
-      perusahaan: 'PT Telkom Indonesia',
-      alamat: 'Jl. Merdeka No. 21, Bandung',
-      siswa: 'Andi Pratama & Siti Aisyah',
-      kelas: 'XI TJKT',
-      status: StatusAgenda.selesai,
-    ),
-    AgendaItem(
-      jam: '11.00-12.00 WIB',
-      perusahaan: 'CV Kreasi Digital',
-      alamat: 'Jl. Dago No. 45, Bandung',
-      siswa: 'Rizky Ramadhan & Nabila Putri',
-      kelas: 'XI RPL',
-      status: StatusAgenda.terjadwal,
-    ),
-    AgendaItem(
-      jam: '14.00-15.00 WIB',
-      perusahaan: 'PT Inovasi Teknologi',
-      alamat: 'Jl. Soekarno Hatta No. 88, Bandung',
-      siswa: 'Dimas Saputra & Fajar Maulana',
-      kelas: 'XI TJKT',
-      status: StatusAgenda.terjadwal,
-    ),
-  ],
-  '2026-11-19': [
-    AgendaItem(
-      jam: '10.00-11.00 WIB',
-      perusahaan: 'PT Mitra Solusi',
-      alamat: 'Jl. Cihampelas No. 7, Bandung',
-      siswa: 'Lina Marlina & Bayu Aji',
-      kelas: 'XI RPL',
-      status: StatusAgenda.terjadwal,
-    ),
-  ],
-  '2026-11-20': [
-    AgendaItem(
-      jam: '13.00-14.00 WIB',
-      perusahaan: 'CV Karya Teknik',
-      alamat: 'Jl. Buah Batu No. 120, Bandung',
-      siswa: 'Eko Prasetyo & Intan Sari',
-      kelas: 'XI TJKT',
-      status: StatusAgenda.terjadwal,
-    ),
-  ],
-  '2026-11-22': [
-    AgendaItem(
-      jam: '09.30-10.30 WIB',
-      perusahaan: 'PT Bandung Cloud',
-      alamat: 'Jl. Pasteur No. 33, Bandung',
-      siswa: 'Gilang Ramadhan & Putri Ayu',
-      kelas: 'XI RPL',
-      status: StatusAgenda.terjadwal,
-    ),
-  ],
-};

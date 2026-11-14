@@ -1,3 +1,6 @@
+// Simpan di: lib/data/repositories/profil_guru_repository.dart (timpa file lama)
+import 'package:image_picker/image_picker.dart' show XFile;
+
 import '../models/profil_guru_model.dart';
 
 /// Kontrak data akun guru. Page hanya bergantung pada kelas ini,
@@ -5,10 +8,12 @@ import '../models/profil_guru_model.dart';
 abstract class ProfilGuruRepository {
   Future<ProfilGuru> ambilProfil();
 
+  /// [foto] opsional; kalau null, foto lama dibiarkan.
   Future<ProfilGuru> ubahProfil({
     required String nama,
     String? email,
     String? noHp,
+    XFile? foto,
   });
 
   Future<void> gantiPassword({
@@ -20,8 +25,6 @@ abstract class ProfilGuruRepository {
 }
 
 /// Data dummy supaya UI bisa jalan sebelum API tersedia.
-/// TODO: buat ProfilGuruRepositoryApi (http/dio) dengan endpoint backend,
-/// lalu ganti default di ProfilGuruPage.
 class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   ProfilGuru _data = const ProfilGuru(
     nama: 'Andini Rahmawati, S.Pd.',
@@ -45,6 +48,7 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
     required String nama,
     String? email,
     String? noHp,
+    XFile? foto,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
     _data = _data.copyWith(nama: nama, email: email, noHp: noHp);
@@ -66,6 +70,5 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   @override
   Future<void> logout() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    // TODO: hapus token dari secure storage.
   }
 }

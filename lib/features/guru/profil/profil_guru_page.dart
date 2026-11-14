@@ -4,6 +4,7 @@ import 'edit_profil_guru_page.dart';
 import 'ganti_password_page.dart';
 import '../../../data/models/profil_guru_model.dart';
 import '../../../data/repositories/profil_guru_repository.dart';
+import '../../../data/repositories/profil_guru_repository_api.dart';
 
 const _biru = Color(0xFF1677FF);
 const _biruMuda = Color(0xFF6EC1FF);
@@ -25,7 +26,7 @@ class ProfilGuruPage extends StatefulWidget {
 
 class _ProfilGuruPageState extends State<ProfilGuruPage> {
   late final ProfilGuruRepository _repo =
-      widget.repository ?? ProfilGuruRepositoryMock();
+      widget.repository ?? ProfilGuruRepositoryApi();
 
   ProfilGuru? _profil;
   bool _loading = true;
@@ -290,18 +291,14 @@ class _KartuProfil extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: Colors.white,
-            child: Text(
-              profil.inisial,
-              style: const TextStyle(
-                color: _biru,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
+             CircleAvatar(
+     radius: 32,
+     backgroundColor: Colors.white,
+     backgroundImage: profil.fotoUrl != null ? NetworkImage(profil.fotoUrl!) : null,
+     child: profil.fotoUrl == null
+         ? Text(profil.inisial, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF2F6FED)))
+         : null,
+   ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

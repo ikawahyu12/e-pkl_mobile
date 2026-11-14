@@ -117,6 +117,7 @@ class _Angka extends StatelessWidget {
 /// Header bulan (dengan panah minggu & "Hari ini") + strip 7 hari.
 class StripTanggalAgenda extends StatelessWidget {
   final DateTime dipilih;
+  final Set<String> tanggalAdaAgenda; // <-- tambahan
   final ValueChanged<DateTime> onPilihTanggal;
   final ValueChanged<int> onGeserMinggu; // -1 = minggu lalu, 1 = minggu depan
   final VoidCallback onHariIni;
@@ -124,6 +125,7 @@ class StripTanggalAgenda extends StatelessWidget {
   const StripTanggalAgenda({
     super.key,
     required this.dipilih,
+    required this.tanggalAdaAgenda, // <-- tambahan
     required this.onPilihTanggal,
     required this.onGeserMinggu,
     required this.onHariIni,
@@ -132,7 +134,6 @@ class StripTanggalAgenda extends StatelessWidget {
   static const _biru = Color(0xFF1D6FFF);
   static const _gelap = Color(0xFF0F172A);
   static const _abu = Color(0xFF64748B);
-
   // Senin pada minggu tanggal yang dipilih
   DateTime get _awalMinggu =>
       dipilih.subtract(Duration(days: dipilih.weekday - 1));
@@ -197,7 +198,7 @@ class StripTanggalAgenda extends StatelessWidget {
       children: List.generate(7, (i) {
         final tgl = awal.add(Duration(days: i));
         final terpilih = kunciTanggal(tgl) == kunciTanggal(dipilih);
-        final adaAgenda = dummyAgenda.containsKey(kunciTanggal(tgl));
+        final adaAgenda = tanggalAdaAgenda.contains(kunciTanggal(tgl));
 
         return Expanded(
           child: Padding(

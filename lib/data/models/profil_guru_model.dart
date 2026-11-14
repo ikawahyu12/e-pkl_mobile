@@ -1,3 +1,4 @@
+// Simpan di: lib/data/models/profil_guru_model.dart (timpa file lama)
 class ProfilGuru {
   final String nama;
   final String nip;
@@ -6,6 +7,7 @@ class ProfilGuru {
   final String peran;
   final String? email;
   final String? noHp;
+  final String? fotoUrl;
 
   const ProfilGuru({
     required this.nama,
@@ -15,6 +17,7 @@ class ProfilGuru {
     this.peran = 'Guru Pembimbing PKL',
     this.email,
     this.noHp,
+    this.fotoUrl,
   });
 
   /// Inisial untuk avatar, mis. "Andini Rahmawati, S.Pd." -> "AR".
@@ -40,10 +43,16 @@ class ProfilGuru {
       peran: (json['peran'] ?? 'Guru Pembimbing PKL') as String,
       email: json['email'] as String?,
       noHp: json['no_hp'] as String?,
+      fotoUrl: json['foto_url'] as String?,
     );
   }
 
-  ProfilGuru copyWith({String? nama, String? email, String? noHp}) {
+  ProfilGuru copyWith({
+    String? nama,
+    String? email,
+    String? noHp,
+    String? fotoUrl,
+  }) {
     return ProfilGuru(
       nama: nama ?? this.nama,
       nip: nip,
@@ -52,6 +61,7 @@ class ProfilGuru {
       peran: peran,
       email: email ?? this.email,
       noHp: noHp ?? this.noHp,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
     );
   }
 }
