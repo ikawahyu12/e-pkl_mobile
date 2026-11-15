@@ -1,55 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'agenda_data.dart';
+import '../../../data/repositories/agenda_repository_api.dart';
 
-// ============================================================
-// DATA PALSU (sementara). Nanti ganti dengan data dari backend:
-// daftar tempat PKL guru ini beserta siswa bimbingan di tiap tempat.
-// ============================================================
-class _SiswaDummy {
-  final String nama;
-  final String kelas;
-  const _SiswaDummy(this.nama, this.kelas);
-}
-
-class _TempatDummy {
-  final String nama;
-  final String alamat;
-  final List<_SiswaDummy> siswa;
-  const _TempatDummy(this.nama, this.alamat, this.siswa);
-}
-
-const List<_TempatDummy> _daftarTempat = [
-  _TempatDummy('PT Telkom Indonesia', 'Jl. Merdeka No. 21, Bandung', [
-    _SiswaDummy('Andi Pratama', 'XI TJKT'),
-    _SiswaDummy('Siti Aisyah', 'XI TJKT'),
-  ]),
-  _TempatDummy('CV Kreasi Digital', 'Jl. Dago No. 45, Bandung', [
-    _SiswaDummy('Rizky Ramadhan', 'XI RPL'),
-    _SiswaDummy('Nabila Putri', 'XI RPL'),
-  ]),
-  _TempatDummy('PT Inovasi Teknologi', 'Jl. Soekarno Hatta No. 88, Bandung', [
-    _SiswaDummy('Dimas Saputra', 'XI TJKT'),
-    _SiswaDummy('Fajar Maulana', 'XI TJKT'),
-  ]),
-];
-
-/// Hasil yang dikembalikan saat jadwal disimpan (lewat Navigator.pop).
-class HasilTambahAgenda {
-  final DateTime tanggal;
-  final AgendaItem item;
-  const HasilTambahAgenda(this.tanggal, this.item);
-}
-
-// ============================================================
-// HALAMAN TAMBAH AGENDA
-// ============================================================
 class TambahAgendaPage extends StatefulWidget {
-  /// Tanggal awal yang terisi di form (biasanya tanggal yang sedang dipilih).
   final DateTime tanggalAwal;
+  final AgendaRepository repository;
 
-  const TambahAgendaPage({super.key, required this.tanggalAwal});
+  const TambahAgendaPage({
+    super.key,
+    required this.tanggalAwal,
+    required this.repository,
+  });
 
   @override
   State<TambahAgendaPage> createState() => _TambahAgendaPageState();
@@ -60,12 +22,22 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   static const _gelap = Color(0xFF0F172A);
   static const _abu = Color(0xFF64748B);
 
-  late _TempatDummy _tempat = _daftarTempat.first;
-  late Set<String> _siswaDipilih = _tempat.siswa.map((s) => s.nama).toSet();
+  List<AgendaInstansiOption> _tempatTersedia = [];
+  AgendaInstansiOption? _tempat;
+  final Set<int> _siswaDipilih = {};
   late DateTime _tanggal = widget.tanggalAwal;
   TimeOfDay _mulai = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _selesai = const TimeOfDay(hour: 10, minute: 0);
   final _catatan = TextEditingController();
+  bool _memuatOpsi = true;
+  bool _menyimpan = false;
+  String? _errorOpsi;
+
+  @override
+  void initState() {
+    super.initState();
+    _muatOpsi();
+  }
 
   @override
   void dispose() {
@@ -74,7 +46,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   }
 
   String _fmtJam(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}.${t.minute.toString().padLeft(2, '0')}';
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   int _menit(TimeOfDay t) => t.hour * 60 + t.minute;
 
@@ -84,17 +56,45 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       ..showSnackBar(SnackBar(content: Text(pesan)));
   }
 
-  void _gantiTempat(_TempatDummy? baru) {
+  Future<void> _muatOpsi() async {
+    setState(() {
+      _memuatOpsi = true;
+      _errorOpsi = null;
+      _tempatTersedia = [];
+      _tempat = null;
+      _siswaDipilih.clear();
+    });
+    try {
+      final options = await widget.repository.ambilOpsi(_tanggal);
+      if (!mounted) return;
+      setState(() {
+        _tempatTersedia = options;
+        if (options.isNotEmpty) {
+          _tempat = options.first;
+          _siswaDipilih.addAll(options.first.siswa.map((siswa) => siswa.id));
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _errorOpsi = error.toString());
+    } finally {
+      if (mounted) setState(() => _memuatOpsi = false);
+    }
+  }
+
+  void _gantiTempat(AgendaInstansiOption? baru) {
     if (baru == null) return;
     setState(() {
       _tempat = baru;
-      _siswaDipilih = baru.siswa.map((s) => s.nama).toSet(); // pilih semua
+      _siswaDipilih
+        ..clear()
+        ..addAll(baru.siswa.map((siswa) => siswa.id));
     });
   }
 
-  void _toggleSiswa(String nama) {
+  void _toggleSiswa(int id) {
     setState(() {
-      if (!_siswaDipilih.remove(nama)) _siswaDipilih.add(nama);
+      if (!_siswaDipilih.remove(id)) _siswaDipilih.add(id);
     });
   }
 
@@ -105,7 +105,10 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (hasil != null) setState(() => _tanggal = hasil);
+    if (hasil != null) {
+      setState(() => _tanggal = hasil);
+      await _muatOpsi();
+    }
   }
 
   Future<void> _pilihJam({required bool mulai}) async {
@@ -117,7 +120,16 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
     setState(() => mulai ? _mulai = hasil : _selesai = hasil);
   }
 
-  void _simpan() {
+  Future<void> _simpan() async {
+    if (_menyimpan) return;
+    if (_memuatOpsi) {
+      _snack('Tunggu sampai daftar penempatan selesai dimuat.');
+      return;
+    }
+    if (_tempat == null) {
+      _snack('Tidak ada penempatan aktif untuk agenda pada tanggal ini.');
+      return;
+    }
     if (_siswaDipilih.isEmpty) {
       _snack('Pilih minimal satu siswa.');
       return;
@@ -127,20 +139,22 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       return;
     }
 
-    final siswaTerpilih =
-        _tempat.siswa.where((s) => _siswaDipilih.contains(s.nama)).toList();
-
-    final item = AgendaItem(
-      jam: '${_fmtJam(_mulai)}-${_fmtJam(_selesai)} WIB',
-      perusahaan: _tempat.nama,
-      alamat: _tempat.alamat,
-      siswa: siswaTerpilih.map((s) => s.nama).join(' & '),
-      kelas: siswaTerpilih.map((s) => s.kelas).toSet().join(', '),
-      status: StatusAgenda.terjadwal,
-      catatan: _catatan.text.trim().isEmpty ? null : _catatan.text.trim(),
-    );
-
-    Navigator.pop(context, HasilTambahAgenda(_tanggal, item));
+    setState(() => _menyimpan = true);
+    try {
+      final item = await widget.repository.tambah(
+        instansiId: _tempat!.id,
+        siswaIds: _siswaDipilih.toList(),
+        tanggal: _tanggal,
+        jamMulai: _fmtJam(_mulai),
+        jamSelesai: _fmtJam(_selesai),
+        catatan: _catatan.text.trim().isEmpty ? null : _catatan.text.trim(),
+      );
+      if (mounted) Navigator.pop(context, item);
+    } catch (error) {
+      if (mounted) _snack(error.toString());
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
   }
 
   // ------------------------------------------------------------
@@ -184,7 +198,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           const SizedBox(height: 8),
           const Center(
             child: Text(
-              'Jadwal akan ditambahkan ke Agenda Monitoring.',
+              'Jadwal akan disimpan sebagai Agenda Kunjungan.',
               style: TextStyle(fontSize: 11, color: _abu),
             ),
           ),
@@ -238,52 +252,75 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       children: [
         const _Label('Tempat PKL', wajib: true),
         const SizedBox(height: 6),
-        _Kotak(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<_TempatDummy>(
-              value: _tempat,
-              isExpanded: true,
-              itemHeight: 64,
-              icon: const Icon(Icons.keyboard_arrow_down, color: _gelap),
-              onChanged: _gantiTempat,
-              items: _daftarTempat
-                  .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Row(
-                        children: [
-                          const _IkonKotak(Icons.apartment),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t.nama,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: _gelap,
+        if (_memuatOpsi)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_errorOpsi != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_errorOpsi!, style: const TextStyle(color: Colors.red)),
+              TextButton(onPressed: _muatOpsi, child: const Text('Coba lagi')),
+            ],
+          )
+        else if (_tempatTersedia.isEmpty)
+          const Text(
+            'Tidak ada penempatan aktif atau belum mulai pada tanggal ini.',
+            style: TextStyle(fontSize: 12, color: _abu),
+          )
+        else
+          _Kotak(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<AgendaInstansiOption>(
+                value: _tempat,
+                isExpanded: true,
+                itemHeight: 64,
+                icon: const Icon(Icons.keyboard_arrow_down, color: _gelap),
+                onChanged: _gantiTempat,
+                items: _tempatTersedia
+                    .map(
+                      (place) => DropdownMenuItem(
+                        value: place,
+                        child: Row(
+                          children: [
+                            const _IkonKotak(Icons.apartment),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    place.nama,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _gelap,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  t.alamat,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 10, color: _abu),
-                                ),
-                              ],
+                                  Text(
+                                    place.alamat,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: _abu,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -305,12 +342,12 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           style: TextStyle(fontSize: 11, color: _abu),
         ),
         const SizedBox(height: 8),
-        ..._tempat.siswa.map(_buildBarisSiswa),
+        if (_tempat != null) ..._tempat!.siswa.map(_buildBarisSiswa),
       ],
     );
   }
 
-  Widget _buildBarisSiswa(_SiswaDummy s) {
+  Widget _buildBarisSiswa(AgendaSiswaOption s) {
     final inisial = s.nama
         .split(' ')
         .take(2)
@@ -318,7 +355,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
         .join();
 
     return InkWell(
-      onTap: () => _toggleSiswa(s.nama),
+      onTap: () => _toggleSiswa(s.id),
       borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -355,15 +392,15 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
                     ),
                   ),
                   Text(
-                    s.kelas,
+                    s.kelas ?? '-',
                     style: const TextStyle(fontSize: 11, color: _abu),
                   ),
                 ],
               ),
             ),
             Checkbox(
-              value: _siswaDipilih.contains(s.nama),
-              onChanged: (_) => _toggleSiswa(s.nama),
+              value: _siswaDipilih.contains(s.id),
+              onChanged: (_) => _toggleSiswa(s.id),
               activeColor: _biru,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(5),
@@ -386,8 +423,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           onTap: _pilihTanggal,
           child: Row(
             children: [
-              const Icon(Icons.calendar_month_outlined,
-                  size: 20, color: _biru),
+              const Icon(Icons.calendar_month_outlined, size: 20, color: _biru),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -476,7 +512,8 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           maxLength: 300,
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
-            hintText: 'Tambahkan tujuan atau hal yang perlu disiapkan saat '
+            hintText:
+                'Tambahkan tujuan atau hal yang perlu disiapkan saat '
                 'kunjungan...',
             hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
             filled: true,
@@ -498,23 +535,36 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
 
   Widget _buildTombolSimpan() {
     return GestureDetector(
-      onTap: _simpan,
+      onTap: _menyimpan ? null : _simpan,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
-          ),
+          color: _menyimpan ? const Color(0xFF94A3B8) : null,
+          gradient: _menyimpan
+              ? null
+              : const LinearGradient(
+                  colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
+                ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.save_outlined, color: Colors.white, size: 20),
-            SizedBox(width: 8),
+            if (_menyimpan)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            else
+              const Icon(Icons.save_outlined, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
             Text(
-              'Simpan Jadwal',
-              style: TextStyle(
+              _menyimpan ? 'Menyimpan...' : 'Simpan Jadwal',
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,

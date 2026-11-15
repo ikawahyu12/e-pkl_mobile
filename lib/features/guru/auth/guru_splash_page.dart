@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../data/models/guru_auth_session.dart';
 import '../../../data/repositories/guru_auth_repository.dart';
 import '../main/main_page.dart';
+import '../profil/ganti_password_page.dart';
 import 'guru_login_page.dart';
 
 const _splashCorner = Color(0xFFF0F9FF);
@@ -34,12 +35,28 @@ class _GuruSplashPageState extends State<GuruSplashPage> {
 
     await Future<void>.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
-    final Widget tujuan = session?.isValidGuruSession == true
-        ? GuruMainPage(repository: widget.repository)
-        : GuruLoginPage(repository: widget.repository);
-    await Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => tujuan));
+    final navigator = Navigator.of(context);
+    final Widget tujuan;
+    if (session?.isValidGuruSession != true) {
+      tujuan = GuruLoginPage(repository: widget.repository);
+    } else if (session!.wajibGantiPassword) {
+      tujuan = GantiPasswordPage(
+        repository: widget.repository,
+        wajibGanti: true,
+        onPasswordChanged: () => navigator.pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => GuruMainPage(repository: widget.repository),
+          ),
+          (_) => false,
+        ),
+      );
+    } else {
+      tujuan = GuruMainPage(repository: widget.repository);
+    }
+
+    await navigator.pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => tujuan),
+    );
   }
 
   @override

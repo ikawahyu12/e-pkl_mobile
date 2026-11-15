@@ -36,7 +36,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 2:
         return const MonitoringPage();
       case 3:
-        return ProfilGuruPage(onLogout: _keluar);
+        return ProfilGuruPage(authRepository: widget.repository, onLogout: _keluar);
       default:
         return GuruHomePage(onPindahTab: _pilihTab);
     }
