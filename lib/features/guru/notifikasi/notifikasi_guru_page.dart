@@ -12,7 +12,7 @@ import '../siswa_bimbingan/detail_siswa_page.dart';
 ///
 /// Navigasi saat notifikasi diketuk:
 /// - penilaian  -> HasilPenilaianPage siswa terkait
-/// - jurnal     -> [onBukaValidasiJurnal] bila diisi, jika tidak DetailSiswaPage
+/// - jurnal     -> [onBukaInformasiJurnal] bila diisi, jika tidak DetailSiswaPage
 /// - kehadiran  -> [onBukaMonitoring] bila diisi, jika tidak DetailSiswaPage
 ///                 (atau pesan "belum tersedia" bila tak ada siswa terkait)
 /// - informasi  -> bottom sheet isi lengkap
@@ -21,8 +21,8 @@ class NotifikasiGuruPage extends StatefulWidget {
   final SiswaBimbinganRepository? siswaRepository;
   final PenilaianRepository? penilaianRepository;
 
-  /// Sambungkan ke halaman validasi jurnal / monitoring milik anggota lain.
-  final void Function(Notifikasi notifikasi)? onBukaValidasiJurnal;
+  /// Sambungkan ke halaman informasi jurnal atau monitoring.
+  final void Function(Notifikasi notifikasi)? onBukaInformasiJurnal;
   final void Function(Notifikasi notifikasi)? onBukaMonitoring;
 
   const NotifikasiGuruPage({
@@ -30,7 +30,7 @@ class NotifikasiGuruPage extends StatefulWidget {
     this.repository,
     this.siswaRepository,
     this.penilaianRepository,
-    this.onBukaValidasiJurnal,
+    this.onBukaInformasiJurnal,
     this.onBukaMonitoring,
   });
 
@@ -116,8 +116,8 @@ class _NotifikasiGuruPageState extends State<NotifikasiGuruPage> {
           );
         }
       case TipeNotifikasi.jurnal:
-        if (widget.onBukaValidasiJurnal != null) {
-          widget.onBukaValidasiJurnal!(n);
+        if (widget.onBukaInformasiJurnal != null) {
+          widget.onBukaInformasiJurnal!(n);
         } else {
           _bukaDetailAtauPesan(n);
         }

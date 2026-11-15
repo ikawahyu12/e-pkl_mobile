@@ -6,6 +6,7 @@ import 'package:e_pkl/features/guru/agenda/agenda_page.dart';
 import 'package:e_pkl/features/guru/presensi/buat_presensi.dart';
 import 'package:e_pkl/shared/utils/guru_navigasi.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _data = DashboardGuru(
@@ -58,6 +59,7 @@ Future<List<int>> _pasang(
 
 void main() {
   setUpAll(() => initializeDateFormatting('id_ID', null));
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   group('GuruHomePage', () {
     testWidgets('menampilkan sapaan, statistik, menu cepat, dan info', (
@@ -74,7 +76,7 @@ void main() {
       expect(find.text('10'), findsOneWidget);
       expect(find.text('Menu Cepat'), findsOneWidget);
       expect(find.text('Absensi'), findsOneWidget);
-      expect(find.text('Validasi Jurnal'), findsOneWidget);
+      expect(find.text('Informasi Jurnal'), findsOneWidget);
       expect(find.text('Agenda'), findsOneWidget);
       expect(find.text('Informasi Terbaru'), findsOneWidget);
       expect(
@@ -141,8 +143,16 @@ void main() {
         find.textContaining('Backend presensi belum tersedia'),
         findsOneWidget,
       );
-      await ujiPlaceholder(find.text('Validasi Jurnal'), '/guru/jurnal');
-      await ujiPlaceholder(find.text('Jurnal').first, '/guru/jurnal');
+      await _pasang(tester);
+      await tester.tap(find.text('Informasi Jurnal').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Informasi Jurnal'), findsOneWidget);
+
+      await _pasang(tester);
+      await tester.tap(find.text('Jurnal').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Informasi Jurnal'), findsOneWidget);
+
       await ujiPlaceholder(find.text('Informasi Terbaru'), '/guru/jurnal');
     });
 
@@ -185,9 +195,7 @@ void main() {
       expect(find.text('Buka notifikasi'), findsOneWidget);
     });
 
-    testWidgets('Agenda membuka halaman AgendaPage', (
-      tester,
-    ) async {
+    testWidgets('Agenda membuka halaman AgendaPage', (tester) async {
       await _pasang(tester);
       await tester.tap(find.text('Agenda'));
       await tester.pumpAndSettle();
