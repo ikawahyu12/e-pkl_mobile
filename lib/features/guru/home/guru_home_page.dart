@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
+import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
 import '../informasi_jurnal/informasi_jurnal_page.dart';
 import '../penilaian/daftar_penilaian.dart';
 import '../presensi/buat_presensi.dart';
+import '../validasi_jurnal/validasi_jurnal_page.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -17,12 +19,18 @@ import '../presensi/buat_presensi.dart';
 /// Profil berpindah tab (bukan membuka halaman baru).
 class GuruHomePage extends StatefulWidget {
   final DashboardGuruRepository? repository;
+  final AgendaRepository? agendaRepository;
 
   /// Dipanggil saat pintasan menuju sebuah tab (index mengikuti
   /// [GuruTujuan.tab]: Siswa=1, Monitoring=2, Profil=3).
   final GuruPindahTab? onPindahTab;
 
-  const GuruHomePage({super.key, this.repository, this.onPindahTab});
+  const GuruHomePage({
+    super.key,
+    this.repository,
+    this.agendaRepository,
+    this.onPindahTab,
+  });
 
   @override
   State<GuruHomePage> createState() => _GuruHomePageState();
@@ -202,6 +210,15 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 },
               ),
               EpklMenuCepatItem(
+                icon: Icons.fact_check_outlined,
+                label: 'Validasi Jurnal',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ValidasiJurnalPage(),
+                  ),
+                ),
+              ),
+              EpklMenuCepatItem(
                 icon: Icons.star_border_rounded,
                 label: 'Penilaian',
                 onTap: () {
@@ -216,7 +233,10 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 icon: Icons.calendar_today_outlined,
                 label: 'Agenda',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const AgendaPage()),
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        AgendaPage(repository: widget.agendaRepository),
+                  ),
                 ),
               ),
             ],

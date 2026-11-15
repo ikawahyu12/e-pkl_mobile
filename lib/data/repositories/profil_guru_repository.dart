@@ -5,11 +5,9 @@ import '../models/profil_guru_model.dart';
 abstract class ProfilGuruRepository {
   Future<ProfilGuru> ambilProfil();
 
-  Future<ProfilGuru> ubahProfil({
-    required String nama,
-    String? email,
-    String? noHp,
-  });
+  Future<ProfilGuru> ubahProfil({required String nama, String? noHp});
+
+  Future<void> ajukanPerubahanEmail(String emailBaru);
 
   Future<void> gantiPassword({
     required String passwordLama,
@@ -19,9 +17,6 @@ abstract class ProfilGuruRepository {
   Future<void> logout();
 }
 
-/// Data dummy supaya UI bisa jalan sebelum API tersedia.
-/// TODO: buat ProfilGuruRepositoryApi (http/dio) dengan endpoint backend,
-/// lalu ganti default di ProfilGuruPage.
 class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   ProfilGuru _data = const ProfilGuru(
     nama: 'Andini Rahmawati, S.Pd.',
@@ -41,14 +36,17 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   }
 
   @override
-  Future<ProfilGuru> ubahProfil({
-    required String nama,
-    String? email,
-    String? noHp,
-  }) async {
+  Future<ProfilGuru> ubahProfil({required String nama, String? noHp}) async {
     await Future.delayed(const Duration(milliseconds: 700));
-    _data = _data.copyWith(nama: nama, email: email, noHp: noHp);
+    _data = _data.copyWith(nama: nama, noHp: noHp);
     return _data;
+  }
+
+  @override
+  Future<void> ajukanPerubahanEmail(String emailBaru) async {
+    throw const FormatException(
+      'Perubahan email memerlukan repository API dan verifikasi email.',
+    );
   }
 
   @override

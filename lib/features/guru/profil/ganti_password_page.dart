@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/repositories/profil_guru_repository.dart';
+import '../../../data/repositories/guru_auth_repository.dart';
 
 class GantiPasswordPage extends StatefulWidget {
-  final ProfilGuruRepository repository;
+  final GuruAuthRepository repository;
+  final bool wajibGanti;
+  final VoidCallback? onPasswordChanged;
 
-  const GantiPasswordPage({super.key, required this.repository});
+  const GantiPasswordPage({
+    super.key,
+    required this.repository,
+    this.wajibGanti = false,
+    this.onPasswordChanged,
+  }) : assert(!wajibGanti || onPasswordChanged != null);
 
   @override
   State<GantiPasswordPage> createState() => _GantiPasswordPageState();
@@ -57,17 +64,24 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
       await widget.repository.gantiPassword(
         passwordLama: _lamaC.text,
         passwordBaru: _baruC.text,
+        passwordBaruConfirmation: _konfirmasiC.text,
       );
       if (!mounted) return;
-      Navigator.pop(context, true);
+      if (widget.wajibGanti) {
+        widget.onPasswordChanged!();
+      } else {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (!mounted) return;
       final pesan = e.toString().replaceFirst('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(pesan.isEmpty ? 'Gagal mengubah kata sandi' : pesan),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(pesan.isEmpty ? 'Gagal mengubah kata sandi' : pesan),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _menyimpan = false);
     }
@@ -99,62 +113,82 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Keamanan Akun')),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Text('Ganti kata sandi',
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              _field(
-                controller: _lamaC,
-                label: 'Kata sandi lama',
-                lihat: _lihatLama,
-                onToggle: () => setState(() => _lihatLama = !_lihatLama),
-                validator: _validasiLama,
-              ),
-              const SizedBox(height: 16),
-              _field(
-                controller: _baruC,
-                label: 'Kata sandi baru',
-                lihat: _lihatBaru,
-                onToggle: () => setState(() => _lihatBaru = !_lihatBaru),
-                validator: _validasiBaru,
-              ),
-              const SizedBox(height: 16),
-              _field(
-                controller: _konfirmasiC,
-                label: 'Konfirmasi kata sandi baru',
-                lihat: _lihatKonfirmasi,
-                onToggle: () =>
-                    setState(() => _lihatKonfirmasi = !_lihatKonfirmasi),
-                validator: _validasiKonfirmasi,
-                aksi: TextInputAction.done,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: _menyimpan ? null : _simpan,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+    return PopScope(
+      canPop: !widget.wajibGanti,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: !widget.wajibGanti,
+          title: Text(
+            widget.wajibGanti ? 'Wajib Ganti Kata Sandi' : 'Keamanan Akun',
+          ),
+        ),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (widget.wajibGanti) ...[
+                  const Text(
+                    'Kata sandi sementara harus diganti sebelum menggunakan aplikasi.',
+                    style: TextStyle(
+                      color: Colors.deepOrange,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  child: _menyimpan
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Ubah kata sandi'),
+                  const SizedBox(height: 16),
+                ],
+                const Text(
+                  'Ganti kata sandi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                _field(
+                  controller: _lamaC,
+                  label: 'Kata sandi lama',
+                  lihat: _lihatLama,
+                  onToggle: () => setState(() => _lihatLama = !_lihatLama),
+                  validator: _validasiLama,
+                ),
+                const SizedBox(height: 16),
+                _field(
+                  controller: _baruC,
+                  label: 'Kata sandi baru',
+                  lihat: _lihatBaru,
+                  onToggle: () => setState(() => _lihatBaru = !_lihatBaru),
+                  validator: _validasiBaru,
+                ),
+                const SizedBox(height: 16),
+                _field(
+                  controller: _konfirmasiC,
+                  label: 'Konfirmasi kata sandi baru',
+                  lihat: _lihatKonfirmasi,
+                  onToggle: () =>
+                      setState(() => _lihatKonfirmasi = !_lihatKonfirmasi),
+                  validator: _validasiKonfirmasi,
+                  aksi: TextInputAction.done,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _menyimpan ? null : _simpan,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _menyimpan
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Ubah kata sandi'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

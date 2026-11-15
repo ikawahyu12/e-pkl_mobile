@@ -1,13 +1,17 @@
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:e_pkl/data/models/dashboard_guru_model.dart';
 import 'package:e_pkl/data/repositories/dashboard_guru_repository.dart';
+import 'package:e_pkl/data/repositories/agenda_repository_api.dart';
 import 'package:e_pkl/features/guru/home/guru_home_page.dart';
 import 'package:e_pkl/features/guru/agenda/agenda_page.dart';
+import 'package:e_pkl/features/guru/agenda/agenda_data.dart';
 import 'package:e_pkl/features/guru/presensi/buat_presensi.dart';
 import 'package:e_pkl/shared/utils/guru_navigasi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:e_pkl/features/guru/penilaian/daftar_penilaian.dart';
+import 'package:e_pkl/features/guru/validasi_jurnal/validasi_jurnal_page.dart';
 
 const _data = DashboardGuru(
   jumlahSiswa: 12,
@@ -26,11 +30,40 @@ class _RepoFake implements DashboardGuruRepository {
   Future<DashboardGuru> ambilDashboard() => _ambil();
 }
 
+class _AgendaRepositoryFake implements AgendaRepository {
+  @override
+  Future<List<AgendaItem>> ambilAgenda({
+    required DateTime dari,
+    required DateTime sampai,
+  }) async => [];
+
+  @override
+  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal) async => [];
+
+  @override
+  Future<AgendaItem> tambah({
+    required int instansiId,
+    required List<int> siswaIds,
+    required DateTime tanggal,
+    required String jamMulai,
+    required String jamSelesai,
+    String? catatan,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<AgendaItem> ubahStatus({
+    required int id,
+    required StatusAgenda status,
+    String? alasanPembatalan,
+  }) => throw UnimplementedError();
+}
+
 /// Pasang beranda di dalam MaterialApp. Halaman tujuan diganti halaman
 /// polos yang menampilkan nama rutenya.
 Future<List<int>> _pasang(
   WidgetTester tester, {
   DashboardGuruRepository? repo,
+  AgendaRepository? agendaRepository,
 }) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
@@ -45,6 +78,7 @@ Future<List<int>> _pasang(
         builder: (_) => settings.name == '/'
             ? GuruHomePage(
                 repository: repo ?? _RepoFake(() async => _data),
+                agendaRepository: agendaRepository,
                 onPindahTab: tabDipilih.add,
               )
             : settings.name == '/guru/presensi'
@@ -77,6 +111,7 @@ void main() {
       expect(find.text('Menu Cepat'), findsOneWidget);
       expect(find.text('Absensi'), findsOneWidget);
       expect(find.text('Informasi Jurnal'), findsOneWidget);
+      expect(find.text('Validasi Jurnal'), findsOneWidget);
       expect(find.text('Agenda'), findsOneWidget);
       expect(find.text('Informasi Terbaru'), findsOneWidget);
       expect(
@@ -112,29 +147,33 @@ void main() {
       );
     });
 
-    testWidgets('pintasan tab memindahkan tab tanpa membuka halaman baru', (
+    testWidgets('pintasan tab berpindah tab dan Penilaian membuka halaman', (
       tester,
     ) async {
       final tab = await _pasang(tester);
 
       await tester.tap(find.text('Siswa Bimbingan'));
-      await tester.tap(find.text('Kehadiran'));
-      await tester.tap(find.text('Penilaian').first); // tile statistik
       await tester.pumpAndSettle();
 
-      expect(tab, [1, 2, 1]);
-      expect(find.textContaining('Halaman /guru'), findsNothing);
+      await tester.tap(find.text('Kehadiran'));
+      await tester.pumpAndSettle();
+
+      expect(tab, [1, 2]);
+
+      await tester.tap(find.text('Penilaian').first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DaftarPenilaianPage), findsOneWidget);
     });
 
     testWidgets('pintasan halaman membuka tujuan yang benar', (tester) async {
-      Future<void> ujiPlaceholder(Finder tombol, String rute) async {
-        await _pasang(tester);
-        await tester.tap(tombol);
-        await tester.pumpAndSettle();
-        expect(find.text('Halaman $rute'), findsOneWidget);
-      }
+      // Notifikasi menggunakan named route.
+      await _pasang(tester);
+      await tester.tap(find.byTooltip('Notifikasi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Halaman /guru/notifikasi'), findsOneWidget);
 
-      await ujiPlaceholder(find.byTooltip('Notifikasi'), '/guru/notifikasi');
+      // Absensi membuka halaman presensi.
       await _pasang(tester);
       await tester.tap(find.text('Absensi'));
       await tester.pumpAndSettle();
@@ -149,11 +188,20 @@ void main() {
       expect(find.text('Informasi Jurnal'), findsOneWidget);
 
       await _pasang(tester);
+      await tester.tap(find.text('Validasi Jurnal'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ValidasiJurnalPage), findsOneWidget);
+
+      await _pasang(tester);
       await tester.tap(find.text('Jurnal').first);
       await tester.pumpAndSettle();
       expect(find.text('Informasi Jurnal'), findsOneWidget);
 
-      await ujiPlaceholder(find.text('Informasi Terbaru'), '/guru/jurnal');
+      // Informasi Terbaru tetap menggunakan named route.
+      await _pasang(tester);
+      await tester.tap(find.text('Informasi Terbaru'));
+      await tester.pumpAndSettle();
+      expect(find.text('Halaman /guru/jurnal'), findsOneWidget);
     });
 
     testWidgets('avatar membuka tab Profil', (tester) async {
@@ -196,7 +244,7 @@ void main() {
     });
 
     testWidgets('Agenda membuka halaman AgendaPage', (tester) async {
-      await _pasang(tester);
+      await _pasang(tester, agendaRepository: _AgendaRepositoryFake());
       await tester.tap(find.text('Agenda'));
       await tester.pumpAndSettle();
 

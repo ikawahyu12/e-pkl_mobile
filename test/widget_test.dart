@@ -6,6 +6,9 @@ import 'package:e_pkl/main.dart';
 
 class _AuthRepositoryFake implements GuruAuthRepository {
   @override
+  Future<String?> bacaAccessToken() async => null;
+
+  @override
   Future<GuruAuthSession?> pulihkanSesi() async => null;
 
   @override
@@ -15,6 +18,24 @@ class _AuthRepositoryFake implements GuruAuthRepository {
   }) async {
     throw const GuruAuthException('Tidak dipakai pada test splash.');
   }
+
+  @override
+  Future<void> mintaResetPassword({required String email}) async {}
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String passwordBaru,
+    required String passwordBaruConfirmation,
+  }) async {}
+
+  @override
+  Future<void> gantiPassword({
+    required String passwordLama,
+    required String passwordBaru,
+    required String passwordBaruConfirmation,
+  }) async {}
 
   @override
   Future<void> keluar() async {}

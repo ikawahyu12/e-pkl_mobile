@@ -20,14 +20,15 @@ class EditProfilGuruPage extends StatefulWidget {
 class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   final _formKey = GlobalKey<FormState>();
   late final _namaC = TextEditingController(text: widget.profil.nama);
-  late final _emailC = TextEditingController(text: widget.profil.email ?? '');
+  final _emailBaruC = TextEditingController();
   late final _hpC = TextEditingController(text: widget.profil.noHp ?? '');
   bool _menyimpan = false;
+  bool _mengirimEmail = false;
 
   @override
   void dispose() {
     _namaC.dispose();
-    _emailC.dispose();
+    _emailBaruC.dispose();
     _hpC.dispose();
     super.dispose();
   }
@@ -59,28 +60,67 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
     try {
       final hasil = await widget.repository.ubahProfil(
         nama: _namaC.text.trim(),
-        email: _emailC.text.trim().isEmpty ? null : _emailC.text.trim(),
         noHp: _hpC.text.trim().isEmpty ? null : _hpC.text.trim(),
       );
       if (!mounted) return;
       Navigator.pop(context, hasil);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Gagal menyimpan profil. Coba lagi.'),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Gagal menyimpan profil. Coba lagi.'),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _menyimpan = false);
     }
   }
 
-  InputDecoration _dekor(String label, {String? helper}) => InputDecoration(
-        labelText: label,
-        helperText: helper,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+  Future<void> _kirimTautanEmail() async {
+    final email = _emailBaruC.text.trim();
+    final error = _validasiEmail(email);
+    if (error != null || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Masukkan email baru terlebih dahulu.'),
+        ),
       );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _mengirimEmail = true);
+    try {
+      await widget.repository.ajukanPerubahanEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tautan verifikasi dikirim. Email aktif belum berubah.',
+          ),
+        ),
+      );
+      _emailBaruC.clear();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _mengirimEmail = false);
+    }
+  }
+
+  InputDecoration _dekor(String label, {String? helper}) => InputDecoration(
+    labelText: label,
+    helperText: helper,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -106,11 +146,34 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _emailC,
+                initialValue: widget.profil.email ?? '',
+                enabled: false,
+                decoration: _dekor(
+                  'Email aktif',
+                  helper: 'Email hanya berubah setelah verifikasi.',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailBaruC,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: _dekor('Email'),
-                validator: _validasiEmail,
+                decoration: _dekor('Email baru (verifikasi)'),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _mengirimEmail ? null : _kirimTautanEmail,
+                  icon: _mengirimEmail
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.mark_email_read_outlined),
+                  label: const Text('Kirim tautan verifikasi'),
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -126,7 +189,8 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
                   onPressed: _menyimpan ? null : _simpan,
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _menyimpan
                       ? const SizedBox(

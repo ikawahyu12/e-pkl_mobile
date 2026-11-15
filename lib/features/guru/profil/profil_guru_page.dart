@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'edit_profil_guru_page.dart';
 import 'ganti_password_page.dart';
 import '../../../data/models/profil_guru_model.dart';
+import '../../../data/repositories/guru_auth_repository.dart';
 import '../../../data/repositories/profil_guru_repository.dart';
+import '../../../data/repositories/profil_guru_repository_api.dart';
 
 const _biru = Color(0xFF1677FF);
 const _biruMuda = Color(0xFF6EC1FF);
@@ -12,12 +14,18 @@ const _teksSekunder = Color(0xFF6B7280);
 const _border = Color(0xFFE5E7EB);
 
 class ProfilGuruPage extends StatefulWidget {
+  final GuruAuthRepository authRepository;
   final ProfilGuruRepository? repository;
 
   /// Dipanggil setelah logout berhasil (arahkan ke halaman login).
   final Future<void> Function()? onLogout;
 
-  const ProfilGuruPage({super.key, this.repository, this.onLogout});
+  const ProfilGuruPage({
+    super.key,
+    required this.authRepository,
+    this.repository,
+    this.onLogout,
+  });
 
   @override
   State<ProfilGuruPage> createState() => _ProfilGuruPageState();
@@ -25,7 +33,8 @@ class ProfilGuruPage extends StatefulWidget {
 
 class _ProfilGuruPageState extends State<ProfilGuruPage> {
   late final ProfilGuruRepository _repo =
-      widget.repository ?? ProfilGuruRepositoryMock();
+      widget.repository ??
+      ProfilGuruRepositoryApi(authRepository: widget.authRepository);
 
   ProfilGuru? _profil;
   bool _loading = true;
@@ -82,7 +91,9 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
   Future<void> _gantiPassword() async {
     final berhasil = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => GantiPasswordPage(repository: _repo)),
+      MaterialPageRoute(
+        builder: (_) => GantiPasswordPage(repository: widget.authRepository),
+      ),
     );
     if (berhasil == true && mounted) {
       _snack('Kata sandi berhasil diubah');

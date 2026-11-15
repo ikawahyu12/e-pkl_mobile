@@ -16,10 +16,12 @@ class RingkasanAgendaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final terjadwal =
-        agenda.where((a) => a.status == StatusAgenda.terjadwal).length;
-    final selesai =
-        agenda.where((a) => a.status == StatusAgenda.selesai).length;
+    final terjadwal = agenda
+        .where((a) => a.status == StatusAgenda.terjadwal)
+        .length;
+    final selesai = agenda
+        .where((a) => a.status == StatusAgenda.selesai)
+        .length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -120,6 +122,7 @@ class StripTanggalAgenda extends StatelessWidget {
   final ValueChanged<DateTime> onPilihTanggal;
   final ValueChanged<int> onGeserMinggu; // -1 = minggu lalu, 1 = minggu depan
   final VoidCallback onHariIni;
+  final Set<String> tanggalDenganAgenda;
 
   const StripTanggalAgenda({
     super.key,
@@ -127,6 +130,7 @@ class StripTanggalAgenda extends StatelessWidget {
     required this.onPilihTanggal,
     required this.onGeserMinggu,
     required this.onHariIni,
+    required this.tanggalDenganAgenda,
   });
 
   static const _biru = Color(0xFF1D6FFF);
@@ -197,7 +201,7 @@ class StripTanggalAgenda extends StatelessWidget {
       children: List.generate(7, (i) {
         final tgl = awal.add(Duration(days: i));
         final terpilih = kunciTanggal(tgl) == kunciTanggal(dipilih);
-        final adaAgenda = dummyAgenda.containsKey(kunciTanggal(tgl));
+        final adaAgenda = tanggalDenganAgenda.contains(kunciTanggal(tgl));
 
         return Expanded(
           child: Padding(
@@ -259,13 +263,19 @@ class StripTanggalAgenda extends StatelessWidget {
 class KartuAgenda extends StatelessWidget {
   final AgendaItem item;
   final VoidCallback? onTap;
+  final VoidCallback? onSelesai;
+  final VoidCallback? onBatalkan;
 
-  const KartuAgenda({super.key, required this.item, this.onTap});
+  const KartuAgenda({
+    super.key,
+    required this.item,
+    this.onTap,
+    this.onSelesai,
+    this.onBatalkan,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final selesai = item.status == StatusAgenda.selesai;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -278,7 +288,7 @@ class KartuAgenda extends StatelessWidget {
         ),
         child: Column(
           children: [
-            _buildJamStatus(selesai),
+            _buildJamStatus(),
             const SizedBox(height: 12),
             _buildPerusahaan(),
             const Padding(
@@ -286,13 +296,56 @@ class KartuAgenda extends StatelessWidget {
               child: Divider(height: 1, color: Color(0xFFE2E8F0)),
             ),
             _buildSiswa(),
+            if (item.status == StatusAgenda.terjadwal) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: onBatalkan,
+                    child: const Text('Batalkan'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.tonal(
+                    onPressed: onSelesai,
+                    child: const Text('Tandai selesai'),
+                  ),
+                ],
+              ),
+            ],
+            if (item.alasanPembatalan != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Alasan pembatalan: ${item.alasanPembatalan}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFB91C1C),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildJamStatus(bool selesai) {
+  Widget _buildJamStatus() {
+    final selesai = item.status == StatusAgenda.selesai;
+    final dibatalkan = item.status == StatusAgenda.dibatalkan;
+    final warna = dibatalkan
+        ? const Color(0xFFB91C1C)
+        : selesai
+        ? const Color(0xFF047857)
+        : const Color(0xFF1D6FFF);
+    final latar = dibatalkan
+        ? const Color(0xFFFEE2E2)
+        : selesai
+        ? const Color(0xFFD1FAE5)
+        : const Color(0xFFDBEAFE);
+
     return Row(
       children: [
         const Icon(Icons.access_time, size: 15, color: Color(0xFF1D6FFF)),
@@ -309,24 +362,30 @@ class KartuAgenda extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           decoration: BoxDecoration(
-            color: selesai ? const Color(0xFFD1FAE5) : const Color(0xFFDBEAFE),
+            color: latar,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (selesai) ...[
-                const Icon(Icons.check, size: 12, color: Color(0xFF047857)),
+              if (selesai || dibatalkan) ...[
+                Icon(
+                  dibatalkan ? Icons.cancel_outlined : Icons.check,
+                  size: 12,
+                  color: warna,
+                ),
                 const SizedBox(width: 3),
               ],
               Text(
-                selesai ? 'Selesai' : 'Terjadwal',
+                dibatalkan
+                    ? 'Dibatalkan'
+                    : selesai
+                    ? 'Selesai'
+                    : 'Terjadwal',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: selesai
-                      ? const Color(0xFF047857)
-                      : const Color(0xFF1D6FFF),
+                  color: warna,
                 ),
               ),
             ],
@@ -346,7 +405,11 @@ class KartuAgenda extends StatelessWidget {
             color: const Color(0xFFDBEAFE),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.apartment, size: 20, color: Color(0xFF1D6FFF)),
+          child: const Icon(
+            Icons.apartment,
+            size: 20,
+            color: Color(0xFF1D6FFF),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

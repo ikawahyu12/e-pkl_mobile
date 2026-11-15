@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/guru_auth_repository.dart';
+import 'guru_forgot_password_page.dart';
+import '../profil/ganti_password_page.dart';
 import '../../../shared/widgets/epkl_colors.dart';
 import '../main/main_page.dart';
 
@@ -54,11 +56,29 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
         );
       }
       if (!mounted) return;
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => GuruMainPage(repository: widget.repository),
-        ),
-      );
+      final navigator = Navigator.of(context);
+      if (session.wajibGantiPassword) {
+        await navigator.pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => GantiPasswordPage(
+              repository: widget.repository,
+              wajibGanti: true,
+              onPasswordChanged: () => navigator.pushAndRemoveUntil(
+                MaterialPageRoute<void>(
+                  builder: (_) => GuruMainPage(repository: widget.repository),
+                ),
+                (_) => false,
+              ),
+            ),
+          ),
+        );
+      } else {
+        await navigator.pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => GuruMainPage(repository: widget.repository),
+          ),
+        );
+      }
     } on GuruAuthException catch (error) {
       if (mounted) setState(() => _errorMessage = error.message);
     } finally {
@@ -189,6 +209,25 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                                   size: 20,
                                 ),
                               ),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              key: const ValueKey('guru-forgot-password-link'),
+                              onPressed: _loading
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              GuruForgotPasswordPage(
+                                                repository: widget.repository,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Lupa Password?'),
                             ),
                           ),
                           const SizedBox(height: 24),
