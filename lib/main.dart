@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'data/repositories/guru_auth_repository.dart';
 import 'data/repositories/guru_auth_repository_api.dart';
 import 'features/guru/auth/guru_splash_page.dart';
+import 'features/guru/informasi_jurnal/informasi_jurnal_page.dart';
 import 'features/guru/presensi/buat_presensi.dart';
 import 'shared/widgets/epkl_widgets.dart';
 import 'features/guru/notifikasi/notifikasi_route.dart';
@@ -50,6 +51,13 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => const BuatPresensiPage(),
+          );
+        }
+
+        if (settings.name == '/guru/jurnal') {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const InformasiJurnalPage(),
           );
         }
 

@@ -5,7 +5,7 @@ import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
-import '../validasi_jurnal/validasi_jurnal_page.dart';
+import '../informasi_jurnal/informasi_jurnal_page.dart';
 import '../penilaian/daftar_penilaian.dart';
 import '../presensi/buat_presensi.dart';
 
@@ -158,7 +158,7 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ValidasiJurnalPage(),
+                    builder: (context) => const InformasiJurnalPage(),
                   ),
                 );
               },
@@ -191,12 +191,12 @@ class _GuruHomePageState extends State<GuruHomePage> {
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,
-                label: 'Validasi Jurnal',
+                label: 'Informasi Jurnal',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ValidasiJurnalPage(),
+                      builder: (context) => const InformasiJurnalPage(),
                     ),
                   );
                 },
