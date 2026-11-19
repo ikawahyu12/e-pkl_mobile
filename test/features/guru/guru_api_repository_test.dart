@@ -170,6 +170,49 @@ void main() {
   });
 
   test(
+    'agenda options API maps assigned students from the selected date',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/guru/agenda/opsi');
+        expect(request.url.queryParameters['tanggal'], '2026-11-18');
+        return _response({
+          'success': true,
+          'data': [
+            {
+              'instansi_id': 12,
+              'nama': 'Instansi Uji',
+              'alamat': 'Jalan Uji',
+              'siswa': [
+                {
+                  'id': 42,
+                  'nama': 'Siswa Uji',
+                  'nis': '12345',
+                  'kelas': 'XI RPL',
+                },
+              ],
+            },
+          ],
+        });
+      });
+      final auth = _AuthRepositoryFake();
+      final repository = AgendaRepositoryApi(
+        authRepository: auth,
+        api: GuruApiClient(authRepository: auth, client: client),
+      );
+
+      final options = await repository.ambilOpsi(DateTime(2026, 11, 18));
+
+      expect(options, hasLength(1));
+      expect(options.single.id, 12);
+      expect(options.single.siswa.single.nama, 'Siswa Uji');
+      expect(options.single.siswa.single.nis, '12345');
+      expect(options.single.siswa.single.kelas, 'XI RPL');
+      client.close();
+    },
+  );
+
+  test(
     'agenda API uses the Guru routes and requires a cancellation reason',
     () async {
       final requests = <http.Request>[];

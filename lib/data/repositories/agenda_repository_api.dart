@@ -6,8 +6,14 @@ class AgendaSiswaOption {
   final int id;
   final String nama;
   final String? kelas;
+  final String? nis;
 
-  const AgendaSiswaOption({required this.id, required this.nama, this.kelas});
+  const AgendaSiswaOption({
+    required this.id,
+    required this.nama,
+    this.kelas,
+    this.nis,
+  });
 }
 
 class AgendaInstansiOption {
@@ -85,11 +91,12 @@ class AgendaRepositoryApi implements AgendaRepository {
           id: (student['id'] as num).toInt(),
           nama: student['nama']?.toString() ?? '',
           kelas: student['kelas']?.toString(),
+          nis: student['nis']?.toString(),
         );
       }).toList();
 
       return AgendaInstansiOption(
-        id: (item['instansi_id'] as num).toInt(),
+        id: ((item['instansi_id'] ?? item['id']) as num).toInt(),
         nama: item['nama']?.toString() ?? '',
         alamat: item['alamat']?.toString() ?? '',
         siswa: students,
