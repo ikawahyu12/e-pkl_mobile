@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../agenda/agenda_page.dart';
+import '../informasi_jurnal/informasi_jurnal_page.dart';
 import '../presensi/presensi.dart';
+
 // ============================================================
 // DATA PALSU (sementara). Nanti ganti dengan data dari backend.
 // ============================================================
@@ -42,9 +44,10 @@ class MonitoringPage extends StatelessWidget {
               bgIkon: const Color(0xFFFEF3C7),
               judul: 'Agenda',
               deskripsi: 'Kelola agenda kunjungan ke tempat PKL siswa.',
-              onTap: () => Navigator.push( context,
-            MaterialPageRoute(builder: (_) => const AgendaPage()),
-            ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AgendaPage()),
+              ),
             ),
             _MenuCard(
               ikon: Icons.event_available_outlined,
@@ -52,9 +55,10 @@ class MonitoringPage extends StatelessWidget {
               bgIkon: const Color(0xFFD1FAE5),
               judul: 'Presensi',
               deskripsi: 'Buat presensi dan lihat rekap kehadiran siswa.',
-              onTap: () => Navigator.push( context,
-            MaterialPageRoute(builder: (_) => const PresensiPage()),
-            ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PresensiPage()),
+              ),
             ),
             _MenuCard(
               ikon: Icons.menu_book_outlined,
@@ -62,19 +66,14 @@ class MonitoringPage extends StatelessWidget {
               bgIkon: const Color(0xFFDBEAFE),
               judul: 'Jurnal Kegiatan',
               deskripsi: 'Tinjau jurnal harian dan progres kegiatan PKL.',
-              onTap: () => _buka(context, 'Jurnal Kegiatan'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InformasiJurnalPage()),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // Sementara hanya menampilkan snackbar. Ganti dengan Navigator.push
-  // ke halaman tujuan saat halamannya sudah dibuat.
-  void _buka(BuildContext context, String nama) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Buka halaman $nama')),
     );
   }
 
