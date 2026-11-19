@@ -1,3 +1,5 @@
+import '../../core/config/api_config.dart';
+
 class ProfilGuru {
   final String nama;
   final String nip;
@@ -6,6 +8,7 @@ class ProfilGuru {
   final String peran;
   final String? email;
   final String? noHp;
+  final String? fotoUrl;
 
   const ProfilGuru({
     required this.nama,
@@ -15,6 +18,7 @@ class ProfilGuru {
     this.peran = 'Guru Pembimbing PKL',
     this.email,
     this.noHp,
+    this.fotoUrl,
   });
 
   /// Inisial untuk avatar, mis. "Andini Rahmawati, S.Pd." -> "AR".
@@ -40,10 +44,16 @@ class ProfilGuru {
       peran: (json['peran'] ?? 'Guru Pembimbing PKL') as String,
       email: json['email'] as String?,
       noHp: json['no_hp'] as String?,
+      fotoUrl: _resolveFotoUrl(json['foto_url']),
     );
   }
 
-  ProfilGuru copyWith({String? nama, String? email, String? noHp}) {
+  ProfilGuru copyWith({
+    String? nama,
+    String? email,
+    String? noHp,
+    String? fotoUrl,
+  }) {
     return ProfilGuru(
       nama: nama ?? this.nama,
       nip: nip,
@@ -52,6 +62,32 @@ class ProfilGuru {
       peran: peran,
       email: email ?? this.email,
       noHp: noHp ?? this.noHp,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
     );
   }
+}
+
+String? _resolveFotoUrl(dynamic value) {
+  if (value is! String || value.trim().isEmpty) return null;
+
+  final uri = Uri.tryParse(value.trim());
+  if (uri == null) return null;
+  final apiUri = Uri.tryParse(ApiConfig.baseUrl);
+  if (apiUri == null) return uri.toString();
+
+  if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+    return Uri(
+      scheme: apiUri.scheme,
+      userInfo: apiUri.userInfo,
+      host: apiUri.host,
+      port: apiUri.hasPort ? apiUri.port : null,
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+      fragment: uri.hasFragment ? uri.fragment : null,
+    ).toString();
+  }
+  if (!uri.hasAuthority && uri.path.startsWith('/')) {
+    return apiUri.replace(path: uri.path).toString();
+  }
+  return uri.toString();
 }

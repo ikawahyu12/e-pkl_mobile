@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../models/profil_guru_model.dart';
 import 'guru_api_client.dart';
 import 'guru_auth_repository.dart';
@@ -20,15 +22,35 @@ class ProfilGuruRepositoryApi implements ProfilGuruRepository {
   }
 
   @override
-  Future<ProfilGuru> ubahProfil({required String nama, String? noHp}) async {
-    final body = <String, dynamic>{'nama': nama};
+  Future<ProfilGuru> ubahProfil({
+    required String nama,
+    String? noHp,
+    Uint8List? fotoBytes,
+    String? fotoNama,
+  }) async {
+    final Map<String, dynamic> body = {'nama': nama};
     if (noHp != null) body['no_hp'] = noHp;
 
-    final response = await _api.send(
-      method: 'PATCH',
-      path: 'guru/profil',
-      body: body,
-    );
+    final Map<String, dynamic> response;
+    if (fotoBytes == null) {
+      response = await _api.send(
+        method: 'PATCH',
+        path: 'guru/profil',
+        body: body,
+      );
+    } else {
+      response = await _api.sendMultipart(
+        method: 'POST',
+        path: 'guru/profil',
+        fields: {
+          for (final entry in body.entries)
+            if (entry.value != null) entry.key: entry.value.toString(),
+        },
+        fileBytes: fotoBytes,
+        fileField: 'foto',
+        fileName: fotoNama ?? 'foto-profil.jpg',
+      );
+    }
     return ProfilGuru.fromJson(_data(response));
   }
 

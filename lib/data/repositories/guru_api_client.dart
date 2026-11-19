@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -44,6 +45,63 @@ class GuruApiClient {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
     }
+
+    try {
+      final streamed = await _client.send(request).timeout(_timeout);
+      final response = await http.Response.fromStream(
+        streamed,
+      ).timeout(_timeout);
+      final decoded = _decode(response);
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded['success'] != true) {
+        final message = decoded['message']?.toString().trim();
+        throw GuruAuthException(
+          message == null || message.isEmpty
+              ? 'Permintaan ke server gagal (${response.statusCode}).'
+              : message,
+        );
+      }
+
+      return decoded;
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Server terlalu lama merespons. Periksa koneksi API.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException(
+        'Tidak dapat terhubung ke server. Periksa koneksi API.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> sendMultipart({
+    required String method,
+    required String path,
+    required Map<String, String> fields,
+    required Uint8List fileBytes,
+    required String fileField,
+    required String fileName,
+  }) async {
+    final token = await _authRepository.bacaAccessToken();
+    if (token == null || token.trim().isEmpty) {
+      throw const GuruAuthException(
+        'Sesi Guru tidak ditemukan. Silakan login kembali.',
+      );
+    }
+
+    final baseUrl = ApiConfig.baseUrl.replaceFirst(RegExp(r'/+$'), '');
+    final request = http.MultipartRequest(method, Uri.parse('$baseUrl/$path'))
+      ..headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      })
+      ..fields.addAll(fields)
+      ..files.add(
+        http.MultipartFile.fromBytes(fileField, fileBytes, filename: fileName),
+      );
 
     try {
       final streamed = await _client.send(request).timeout(_timeout);

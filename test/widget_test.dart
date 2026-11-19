@@ -20,6 +20,18 @@ class _AuthRepositoryFake implements GuruAuthRepository {
   }
 
   @override
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {}
+
+  @override
+  Future<void> kirimUlangVerifikasiGuru({required String email}) async {}
+
+  @override
   Future<void> mintaResetPassword({required String email}) async {}
 
   @override

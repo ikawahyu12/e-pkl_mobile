@@ -99,9 +99,126 @@ class _MyAppState extends State<MyApp> {
       title: 'E-PKL',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: EpklColors.biru),
-        fontFamily: 'Montserrat',
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: EpklColors.biru,
+          brightness: Brightness.light,
+        ),
+        fontFamily: 'Montserrat',
+        scaffoldBackgroundColor: const Color(0xFFF5F7FB),
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          displayMedium: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          displaySmall: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          headlineLarge: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          headlineMedium: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          headlineSmall: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          titleLarge: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          titleMedium: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: EpklColors.teks,
+          ),
+          titleSmall: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: EpklColors.teks,
+          ),
+          bodyLarge: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: EpklColors.teks,
+          ),
+          bodyMedium: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: EpklColors.teks,
+          ),
+          bodySmall: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: EpklColors.teksSekunder,
+          ),
+          labelLarge: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+          labelMedium: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: EpklColors.teks,
+          ),
+          labelSmall: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: EpklColors.teks,
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF5F7FB),
+          foregroundColor: EpklColors.teks,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Montserrat',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: EpklColors.teks,
+          ),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          fillColor: Color(0xFFF8FAFC),
+          labelStyle: TextStyle(
+            color: Color(0xFF334155),
+            fontWeight: FontWeight.w600,
+          ),
+          hintStyle: TextStyle(
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: EpklColors.biru, width: 1.5),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: EpklColors.biru,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: EpklColors.biru,
+            textStyle: const TextStyle(
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
       ),
 
       // Aplikasi dimulai dari Splash Screen Guru.

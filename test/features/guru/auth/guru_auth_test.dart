@@ -32,6 +32,15 @@ class _FakeAuthRepository implements GuruAuthRepository {
   Future<GuruAuthSession?> Function() onRestore = () async => null;
   Future<GuruAuthSession> Function(String identifier, String password) onLogin =
       (identifier, password) async => _guruSession;
+  Future<void> Function(
+    String nip,
+    String namaLengkap,
+    String email,
+    String password,
+    String passwordConfirmation,
+  )
+  onRegister = (nip, nama, email, password, confirmation) async {};
+  Future<void> Function(String email) onResendVerification = (email) async {};
   Future<void> Function(String email) onForgotPassword = (email) async {};
   Future<void> Function(
     String email,
@@ -57,6 +66,19 @@ class _FakeAuthRepository implements GuruAuthRepository {
     loginCalls++;
     return onLogin(identifier, password);
   }
+
+  @override
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) => onRegister(nip, namaLengkap, email, password, passwordConfirmation);
+
+  @override
+  Future<void> kirimUlangVerifikasiGuru({required String email}) =>
+      onResendVerification(email);
 
   @override
   Future<void> mintaResetPassword({required String email}) =>
@@ -175,6 +197,53 @@ void main() {
           ),
         ),
       );
+      client.close();
+    });
+
+    test('Guru registration sends the API contract', () async {
+      final client = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/guru/auth/register');
+        expect(request.headers['accept'], 'application/json');
+        expect(jsonDecode(request.body), {
+          'nip': '198201012010011001',
+          'nama_lengkap': 'Guru Uji',
+          'email': 'guru@example.test',
+          'password': 'SecurePassword123',
+          'password_confirmation': 'SecurePassword123',
+        });
+        return _jsonResponse({
+          'success': true,
+          'message': 'Instruksi verifikasi akan dikirim.',
+          'data': null,
+        }, statusCode: 202);
+      });
+      final repository = GuruAuthRepositoryApi(client: client);
+
+      await repository.daftarGuru(
+        nip: ' 198201012010011001 ',
+        namaLengkap: ' Guru Uji ',
+        email: ' guru@example.test ',
+        password: 'SecurePassword123',
+        passwordConfirmation: 'SecurePassword123',
+      );
+      client.close();
+    });
+
+    test('Guru registration can resend a verification email', () async {
+      final client = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/guru/auth/resend-verification');
+        expect(jsonDecode(request.body), {'email': 'guru@example.test'});
+        return _jsonResponse({
+          'success': true,
+          'message': 'Jika akun menunggu verifikasi, tautan baru akan dikirim.',
+          'data': null,
+        }, statusCode: 202);
+      });
+      final repository = GuruAuthRepositoryApi(client: client);
+
+      await repository.kirimUlangVerifikasiGuru(email: ' guru@example.test ');
       client.close();
     });
 
@@ -449,6 +518,21 @@ void main() {
   });
 
   group('Guru splash and login', () {
+    testWidgets('login opens Guru registration page', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: GuruLoginPage(repository: _FakeAuthRepository())),
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('guru-register-link')),
+      );
+      await tester.tap(find.byKey(const ValueKey('guru-register-link')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Registrasi Guru'), findsOneWidget);
+      expect(find.byKey(const ValueKey('guru-register-nip')), findsOneWidget);
+    });
+
     testWidgets('valid session from API opens Guru dashboard', (tester) async {
       final repository = _FakeAuthRepository()
         ..onRestore = () async => _guruSession;

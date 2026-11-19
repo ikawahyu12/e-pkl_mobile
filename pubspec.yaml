@@ -38,6 +38,7 @@ dependencies:
   http: ^1.6.0
   flutter_secure_storage: ^11.2.0
   app_links: ^7.0.0
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

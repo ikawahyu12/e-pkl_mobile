@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../models/profil_guru_model.dart';
 
 /// Kontrak data akun guru. Page hanya bergantung pada kelas ini,
@@ -5,7 +7,12 @@ import '../models/profil_guru_model.dart';
 abstract class ProfilGuruRepository {
   Future<ProfilGuru> ambilProfil();
 
-  Future<ProfilGuru> ubahProfil({required String nama, String? noHp});
+  Future<ProfilGuru> ubahProfil({
+    required String nama,
+    String? noHp,
+    Uint8List? fotoBytes,
+    String? fotoNama,
+  });
 
   Future<void> ajukanPerubahanEmail(String emailBaru);
 
@@ -36,7 +43,12 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   }
 
   @override
-  Future<ProfilGuru> ubahProfil({required String nama, String? noHp}) async {
+  Future<ProfilGuru> ubahProfil({
+    required String nama,
+    String? noHp,
+    Uint8List? fotoBytes,
+    String? fotoNama,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 700));
     _data = _data.copyWith(nama: nama, noHp: noHp);
     return _data;

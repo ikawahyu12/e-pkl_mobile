@@ -48,7 +48,10 @@ class _GuruMainPageState extends State<GuruMainPage> {
       case 2:
         return const MonitoringPage();
       case 3:
-        return ProfilGuruPage(authRepository: widget.repository, onLogout: _keluar);
+        return ProfilGuruPage(
+          authRepository: widget.repository,
+          onLogout: _keluar,
+        );
       default:
         throw RangeError.index(index, _tabNavigasi, 'index');
     }
@@ -165,7 +168,7 @@ class _TombolNavigasi extends StatelessWidget {
   Widget build(BuildContext context) {
     final warna = terpilih
         ? _GuruMainPageState._warnaUtama
-        : const Color(0xFF64748B);
+        : const Color(0xFF475569);
 
     return Semantics(
       button: true,
@@ -208,8 +211,8 @@ class _TombolNavigasi extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   style: TextStyle(
                     color: warna,
-                    fontSize: 10,
-                    fontWeight: terpilih ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 11,
+                    fontWeight: terpilih ? FontWeight.w800 : FontWeight.w700,
                   ),
                   child: Text(item.label, maxLines: 1),
                 ),

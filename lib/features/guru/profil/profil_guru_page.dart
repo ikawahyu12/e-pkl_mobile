@@ -287,6 +287,15 @@ class _KartuProfil extends StatelessWidget {
   final ProfilGuru profil;
   const _KartuProfil({required this.profil});
 
+  Widget _inisial() => Text(
+    profil.inisial,
+    style: const TextStyle(
+      color: _biru,
+      fontSize: 24,
+      fontWeight: FontWeight.w800,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -304,12 +313,17 @@ class _KartuProfil extends StatelessWidget {
           CircleAvatar(
             radius: 36,
             backgroundColor: Colors.white,
-            child: Text(
-              profil.inisial,
-              style: const TextStyle(
-                color: _biru,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
+            child: ClipOval(
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: profil.fotoUrl?.isNotEmpty == true
+                    ? Image.network(
+                        profil.fotoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(child: _inisial()),
+                      )
+                    : Center(child: _inisial()),
               ),
             ),
           ),

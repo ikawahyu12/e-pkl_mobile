@@ -118,6 +118,80 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
   }
 
   @override
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/register'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'nip': nip.trim(),
+              'nama_lengkap': namaLengkap.trim(),
+              'email': email.trim(),
+              'password': password,
+              'password_confirmation': passwordConfirmation,
+            }),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode != 202 || data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Registrasi Guru tidak dapat diproses.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan registrasi terlalu lama. Periksa koneksi API.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server API.');
+    } catch (_) {
+      throw const GuruAuthException('Registrasi Guru tidak dapat diproses.');
+    }
+  }
+
+  @override
+  Future<void> kirimUlangVerifikasiGuru({required String email}) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/resend-verification'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email.trim()}),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode != 202 || data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Tautan verifikasi tidak dapat dikirim ulang.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan terlalu lama. Periksa koneksi API.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server API.');
+    } catch (_) {
+      throw const GuruAuthException(
+        'Tautan verifikasi tidak dapat dikirim ulang.',
+      );
+    }
+  }
+
+  @override
   Future<void> mintaResetPassword({required String email}) async {
     try {
       final response = await _client

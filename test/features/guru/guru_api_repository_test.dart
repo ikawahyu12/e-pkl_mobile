@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:e_pkl/data/models/guru_auth_session.dart';
 import 'package:e_pkl/data/repositories/agenda_repository_api.dart';
@@ -22,6 +23,18 @@ class _AuthRepositoryFake implements GuruAuthRepository {
     required String identifier,
     required String password,
   }) => throw UnimplementedError();
+
+  @override
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {}
+
+  @override
+  Future<void> kirimUlangVerifikasiGuru({required String email}) async {}
 
   @override
   Future<void> mintaResetPassword({required String email}) async {}
@@ -117,6 +130,44 @@ void main() {
       client.close();
     },
   );
+
+  test('profile API uploads a Guru photo as multipart data', () async {
+    http.Request? captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return _response({
+        'success': true,
+        'data': {
+          'nama': 'Guru Baru',
+          'nip': '123',
+          'sekolah': 'SMK',
+          'bimbingan': '1 siswa',
+          'foto_url': 'http://127.0.0.1:8000/api/v1/foto/foto-guru/test.jpg',
+        },
+      });
+    });
+    final auth = _AuthRepositoryFake();
+    final repository = ProfilGuruRepositoryApi(
+      authRepository: auth,
+      api: GuruApiClient(authRepository: auth, client: client),
+    );
+
+    final updated = await repository.ubahProfil(
+      nama: 'Guru Baru',
+      noHp: '08123456789',
+      fotoBytes: Uint8List.fromList([137, 80, 78, 71]),
+      fotoNama: 'foto-guru.png',
+    );
+
+    expect(updated.fotoUrl, contains('/foto/foto-guru/test.jpg'));
+    expect(captured, isNotNull);
+    expect(captured!.method, 'POST');
+    expect(captured!.url.path, '/api/v1/guru/profil');
+    expect(captured!.headers['authorization'], 'Bearer test-access-token');
+    expect(captured!.headers['content-type'], contains('multipart/form-data'));
+    expect(captured!.bodyBytes, contains(137));
+    client.close();
+  });
 
   test(
     'agenda API uses the Guru routes and requires a cancellation reason',

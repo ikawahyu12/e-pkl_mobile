@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../data/repositories/guru_auth_repository.dart';
 import 'guru_forgot_password_page.dart';
+import 'guru_register_page.dart';
 import '../profil/ganti_password_page.dart';
 import '../../../shared/widgets/epkl_colors.dart';
 import '../main/main_page.dart';
 
-const _latarLogin = Color(0xFFF3FAFF);
-const _fieldBorder = Color(0xFFE2F0F9);
-const _fieldText = Color(0xFF5B7593);
+const _latarLogin = Color(0xFFF5F7FB);
+const _fieldBorder = Color(0xFFCBD5E1);
+const _fieldText = Color(0xFF334155);
 const _errorBackground = Color(0xFFE8B4BA);
 
 class GuruLoginPage extends StatefulWidget {
@@ -146,11 +147,12 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                             style: TextStyle(
                               color: _fieldText,
                               fontSize: 13,
+                              fontWeight: FontWeight.w600,
                               height: 1.4,
                             ),
                           ),
                           const SizedBox(height: 22),
-                          const _LoginFieldLabel('Username'),
+                          const _LoginFieldLabel('NIP, email, atau username'),
                           const SizedBox(height: 7),
                           TextFormField(
                             key: const ValueKey('guru-identifier'),
@@ -163,9 +165,10 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                             style: const TextStyle(
                               color: _fieldText,
                               fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                             decoration: _dekorasiInput(
-                              hint: 'Masukkan email atau username',
+                              hint: 'Masukkan NIP, email, atau username',
                               icon: Icons.person_outline,
                             ),
                           ),
@@ -184,6 +187,7 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                             style: const TextStyle(
                               color: _fieldText,
                               fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                             decoration: _dekorasiInput(
                               hint: '••••••••••••',
@@ -275,6 +279,20 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                                 ),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            key: const ValueKey('guru-register-link'),
+                            onPressed: _loading
+                                ? null
+                                : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => GuruRegisterPage(
+                                        repository: widget.repository,
+                                      ),
+                                    ),
+                                  ),
+                            child: const Text('Belum punya akun Guru? Daftar'),
                           ),
                         ],
                       ),

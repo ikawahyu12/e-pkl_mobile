@@ -10,6 +10,16 @@ abstract interface class GuruAuthRepository {
     required String password,
   });
 
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  });
+
+  Future<void> kirimUlangVerifikasiGuru({required String email});
+
   Future<void> mintaResetPassword({required String email});
 
   Future<void> resetPassword({
