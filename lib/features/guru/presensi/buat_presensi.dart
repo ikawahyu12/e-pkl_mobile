@@ -3,16 +3,26 @@ import 'package:intl/intl.dart';
 
 import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../data/repositories/guru_presensi_repository_api.dart';
 import '../../../data/repositories/instansi_repository.dart';
+
+enum _JenisWaktuPresensi {
+  masukMulai,
+  masukSelesai,
+  pulangMulai,
+  pulangSelesai,
+}
 
 class BuatPresensiPage extends StatefulWidget {
   final AgendaRepository? agendaRepository;
   final InstansiRepository? instansiRepository;
+  final GuruPresensiRepository? presensiRepository;
 
   const BuatPresensiPage({
     super.key,
     this.agendaRepository,
     this.instansiRepository,
+    this.presensiRepository,
   });
 
   @override
@@ -25,6 +35,9 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
       AgendaRepositoryApi(authRepository: GuruAuthRepositoryApi());
   late final InstansiRepository _instansiRepository =
       widget.instansiRepository ?? InstansiRepository();
+  late final GuruPresensiRepository _presensiRepository =
+      widget.presensiRepository ??
+      GuruPresensiRepositoryApi(authRepository: GuruAuthRepositoryApi());
 
   List<InstansiOption> _instansiList = [];
   List<AgendaInstansiOption> _opsiInstansiSiswa = [];
@@ -33,13 +46,16 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
   bool _memuatSiswa = true;
   String? _errorInstansi;
   String? _errorSiswa;
+  bool _menyimpan = false;
   final Set<int> _siswaHadir = {};
   int _siswaLoadId = 0;
 
   DateTime _selectedDate = DateTime.now();
 
-  TimeOfDay _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
-  TimeOfDay _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
+  TimeOfDay _jamMasukMulai = const TimeOfDay(hour: 7, minute: 0);
+  TimeOfDay _jamMasukSelesai = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _jamPulangMulai = const TimeOfDay(hour: 12, minute: 0);
+  TimeOfDay _jamPulangSelesai = const TimeOfDay(hour: 16, minute: 0);
 
   AgendaInstansiOption? get _instansiSiswaTerpilih {
     for (final opsi in _opsiInstansiSiswa) {
@@ -119,10 +135,11 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
   }
 
   Future<void> _pilihTanggal() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
+      firstDate: today,
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
@@ -143,10 +160,16 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
     }
   }
 
-  Future<void> _pilihJam(bool isCheckIn) async {
+  Future<void> _pilihJam(_JenisWaktuPresensi jenis) async {
+    final initialTime = switch (jenis) {
+      _JenisWaktuPresensi.masukMulai => _jamMasukMulai,
+      _JenisWaktuPresensi.masukSelesai => _jamMasukSelesai,
+      _JenisWaktuPresensi.pulangMulai => _jamPulangMulai,
+      _JenisWaktuPresensi.pulangSelesai => _jamPulangSelesai,
+    };
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isCheckIn ? _jamCheckIn : _jamCheckOut,
+      initialTime: initialTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -163,41 +186,85 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
 
     if (mounted && picked != null) {
       setState(() {
-        if (isCheckIn) {
-          _jamCheckIn = picked;
-        } else {
-          _jamCheckOut = picked;
+        switch (jenis) {
+          case _JenisWaktuPresensi.masukMulai:
+            _jamMasukMulai = picked;
+          case _JenisWaktuPresensi.masukSelesai:
+            _jamMasukSelesai = picked;
+          case _JenisWaktuPresensi.pulangMulai:
+            _jamPulangMulai = picked;
+          case _JenisWaktuPresensi.pulangSelesai:
+            _jamPulangSelesai = picked;
         }
       });
     }
   }
 
-  void _simpanPresensi() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Backend belum tersedia'),
-        content: const Text(
-          'Form ini masih berupa prototipe. Data presensi belum disimpan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Mengerti'),
-          ),
-        ],
-      ),
-    );
+  String _formatJam(TimeOfDay waktu) =>
+      '${waktu.hour.toString().padLeft(2, '0')}:${waktu.minute.toString().padLeft(2, '0')}';
+
+  int _menit(TimeOfDay waktu) => waktu.hour * 60 + waktu.minute;
+
+  Future<void> _simpanPresensi() async {
+    if (_menyimpan) return;
+    if (_memuatInstansi || _memuatSiswa) {
+      _tampilkanPesan('Tunggu sampai data instansi dan siswa selesai dimuat.');
+      return;
+    }
+    if (_selectedInstansiId == null) {
+      _tampilkanPesan('Pilih instansi terlebih dahulu.');
+      return;
+    }
+    if (_siswaHadir.isEmpty) {
+      _tampilkanPesan('Pilih minimal satu siswa.');
+      return;
+    }
+    if (_menit(_jamMasukSelesai) <= _menit(_jamMasukMulai)) {
+      _tampilkanPesan('Batas check-in harus setelah waktu mulai check-in.');
+      return;
+    }
+    if (_menit(_jamPulangMulai) <= _menit(_jamMasukSelesai)) {
+      _tampilkanPesan('Waktu mulai check-out harus setelah batas check-in.');
+      return;
+    }
+    if (_menit(_jamPulangSelesai) <= _menit(_jamPulangMulai)) {
+      _tampilkanPesan('Batas check-out harus setelah waktu mulai check-out.');
+      return;
+    }
+
+    setState(() => _menyimpan = true);
+    try {
+      await _presensiRepository.bukaSesi(
+        instansiId: _selectedInstansiId!,
+        siswaIds: _siswaHadir.toList()..sort(),
+        tanggal: _selectedDate,
+        jamMasukMulai: _formatJam(_jamMasukMulai),
+        jamMasukSelesai: _formatJam(_jamMasukSelesai),
+        jamPulangMulai: _formatJam(_jamPulangMulai),
+        jamPulangSelesai: _formatJam(_jamPulangSelesai),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Sesi presensi berhasil dibuka.')),
+        );
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) _tampilkanPesan(error.toString());
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
+  }
+
+  void _tampilkanPesan(String pesan) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(pesan)));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Format waktu ke string untuk ditampilkan di UI
-    final timeCheckInStr =
-        '${_jamCheckIn.hour.toString().padLeft(2, '0')}:${_jamCheckIn.minute.toString().padLeft(2, '0')}';
-    final timeCheckOutStr =
-        '${_jamCheckOut.hour.toString().padLeft(2, '0')}:${_jamCheckOut.minute.toString().padLeft(2, '0')}';
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -294,16 +361,31 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
           ),
           const SizedBox(height: 16),
 
+          _buildLabel("WAKTU CHECK-IN"),
           _responsivePair(
             _buildTimeInfo(
-              "BATAS CHECK-IN",
-              timeCheckInStr,
-              () => _pilihJam(true),
+              "MULAI",
+              _formatJam(_jamMasukMulai),
+              () => _pilihJam(_JenisWaktuPresensi.masukMulai),
             ),
             _buildTimeInfo(
-              "BATAS CHECK-OUT",
-              timeCheckOutStr,
-              () => _pilihJam(false),
+              "BATAS",
+              _formatJam(_jamMasukSelesai),
+              () => _pilihJam(_JenisWaktuPresensi.masukSelesai),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabel("WAKTU CHECK-OUT"),
+          _responsivePair(
+            _buildTimeInfo(
+              "MULAI",
+              _formatJam(_jamPulangMulai),
+              () => _pilihJam(_JenisWaktuPresensi.pulangMulai),
+            ),
+            _buildTimeInfo(
+              "BATAS",
+              _formatJam(_jamPulangSelesai),
+              () => _pilihJam(_JenisWaktuPresensi.pulangSelesai),
             ),
           ),
           const SizedBox(height: 24),
@@ -374,21 +456,30 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _simpanPresensi,
+              onPressed: _menyimpan ? null : _simpanPresensi,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF48A2E6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                "Simpan Absensi",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              child: _menyimpan
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      "Simpan Absensi",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],

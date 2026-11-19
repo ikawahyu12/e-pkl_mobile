@@ -12,15 +12,6 @@ class PresensiPage extends StatefulWidget {
 }
 
 class _PresensiPageState extends State<PresensiPage> {
-  void _tampilkanStatusBackend() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Backend presensi belum tersedia; data belum dimuat.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,13 +33,6 @@ class _PresensiPageState extends State<PresensiPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Periksa status backend',
-            onPressed: _tampilkanStatusBackend,
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -88,7 +72,7 @@ class _PresensiPageState extends State<PresensiPage> {
                   icon: Icons.assignment_turned_in_outlined,
                   title: 'Buat Presensi',
                   subtitle:
-                      'Prototipe: data siswa dan status presensi belum dimuat dari backend.',
+                      'Buka sesi check-in dan check-out untuk siswa bimbingan.',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -130,7 +114,7 @@ class _PresensiPageState extends State<PresensiPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Belum terhubung ke backend. Data presensi belum dimuat atau disimpan.',
+                          'Sesi yang dibuat akan muncul pada aplikasi siswa sesuai tanggal dan penempatan mereka.',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue.shade800,
