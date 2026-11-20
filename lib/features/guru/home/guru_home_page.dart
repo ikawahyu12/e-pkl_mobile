@@ -9,7 +9,6 @@ import '../../../shared/widgets/epkl_widgets.dart';
 import '../informasi_jurnal/informasi_jurnal_page.dart';
 import '../penilaian/daftar_penilaian.dart';
 import '../presensi/buat_presensi.dart';
-import '../validasi_jurnal/validasi_jurnal_page.dart';
 
 /// Beranda guru pembimbing: sapaan, ringkasan statistik, menu cepat,
 /// dan informasi terbaru.
@@ -215,15 +214,6 @@ class _GuruHomePageState extends State<GuruHomePage> {
                     ),
                   );
                 },
-              ),
-              EpklMenuCepatItem(
-                icon: Icons.fact_check_outlined,
-                label: 'Validasi Jurnal',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ValidasiJurnalPage(),
-                  ),
-                ),
               ),
               EpklMenuCepatItem(
                 icon: Icons.star_border_rounded,
