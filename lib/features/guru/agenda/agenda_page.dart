@@ -1,9 +1,9 @@
-// Simpan di: lib/features/guru/agenda/agenda_page.dart (timpa file lama)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../data/repositories/agenda_repository.dart';
 import '../../../data/repositories/agenda_repository_api.dart';
+import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 import 'agenda_data.dart';
 import 'agenda_widgets.dart';
 import 'tambah_agenda_page.dart';
@@ -19,103 +19,94 @@ class AgendaPage extends StatefulWidget {
 }
 
 class _AgendaPageState extends State<AgendaPage> {
-  late final AgendaRepository _repo;
+  late final AgendaRepository _repository =
+      widget.repository ??
+      AgendaRepositoryApi(authRepository: GuruAuthRepositoryApi());
+
   DateTime _dipilih = hariIni();
-
-  /// Agenda per tanggal (yyyy-MM-dd), diisi dari server per minggu.
-  final Map<String, List<AgendaItem>> _cache = {};
-  String? _mingguDimuat; // kunci hari Senin minggu yang sudah dimuat
-  bool _memuat = false;
+  List<AgendaItem> _agendaMinggu = [];
+  bool _memuat = true;
   String? _error;
+  int _muatId = 0;
 
-  List<AgendaItem> get _agendaTerpilih =>
-      _cache[kunciTanggal(_dipilih)] ?? const [];
+  DateTime _awalMinggu(DateTime date) =>
+      DateTime(date.year, date.month, date.day - date.weekday + 1);
+
+  List<AgendaItem> get _agendaTerpilih => _agendaMinggu
+      .where((item) => kunciTanggal(item.tanggal) == kunciTanggal(_dipilih))
+      .toList();
+
+  Set<String> get _tanggalDenganAgenda =>
+      _agendaMinggu.map((item) => kunciTanggal(item.tanggal)).toSet();
 
   @override
   void initState() {
     super.initState();
-    _repo = widget.repository ?? AgendaRepositoryApi();
-    _muatMinggu();
+    _muat();
   }
 
-  DateTime _senin(DateTime d) => DateTime(d.year, d.month, d.day)
-      .subtract(Duration(days: d.weekday - 1));
-
-  Future<void> _muatMinggu({bool paksa = false}) async {
-    final senin = _senin(_dipilih);
-    final kunci = kunciTanggal(senin);
-    if (!paksa && kunci == _mingguDimuat) return;
-
+  Future<void> _muat() async {
+    final muatId = ++_muatId;
+    final awal = _awalMinggu(_dipilih);
     setState(() {
       _memuat = true;
       _error = null;
     });
+
     try {
-      final hasil = await _repo.ambilRentang(
-        senin,
-        senin.add(const Duration(days: 6)),
+      final agenda = await _repository.ambilAgenda(
+        dari: awal,
+        sampai: awal.add(const Duration(days: 6)),
       );
-      if (!mounted) return;
-      // Abaikan respons lama kalau pengguna sudah pindah minggu.
-      if (kunci != kunciTanggal(_senin(_dipilih))) return;
-      setState(() {
-        for (var i = 0; i < 7; i++) {
-          _cache.remove(kunciTanggal(senin.add(Duration(days: i))));
-        }
-        _cache.addAll(hasil);
-        _mingguDimuat = kunci;
-        _memuat = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      if (kunci != kunciTanggal(_senin(_dipilih))) return;
-      setState(() {
-        _memuat = false;
-        _error = _pesan(e);
-      });
+      if (!mounted || muatId != _muatId) return;
+      setState(() => _agendaMinggu = agenda);
+    } catch (error) {
+      if (!mounted || muatId != _muatId) return;
+      setState(() => _error = _pesan(error));
+    } finally {
+      if (mounted && muatId == _muatId) {
+        setState(() => _memuat = false);
+      }
     }
   }
 
   String _pesan(Object e) => e.toString().replaceFirst('Exception: ', '');
 
-  void _snack(String pesan) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(pesan)));
+  void _pilihTanggal(DateTime tanggal) {
+    final perluMuat =
+        kunciTanggal(_awalMinggu(tanggal)) !=
+        kunciTanggal(_awalMinggu(_dipilih));
+    setState(
+      () => _dipilih = DateTime(tanggal.year, tanggal.month, tanggal.day),
+    );
+    if (perluMuat) _muat();
   }
 
-  void _pilihTanggal(DateTime tgl) {
-    setState(() => _dipilih = tgl);
-    _muatMinggu();
+  void _geserMinggu(int arah) {
+    _pilihTanggal(_dipilih.add(Duration(days: 7 * arah)));
   }
-
-  void _geserMinggu(int arah) => _pilihTanggal(
-        _dipilih.add(Duration(days: 7 * arah)),
-      );
 
   Future<void> _tambahJadwal() async {
-    final hasil = await Navigator.push<HasilTambahAgenda>(
+    final hasil = await Navigator.push<AgendaItem>(
       context,
       MaterialPageRoute(
-        builder: (_) => TambahAgendaPage(
-          tanggalAwal: _dipilih,
-          repository: _repo,
-        ),
+        builder: (_) =>
+            TambahAgendaPage(tanggalAwal: _dipilih, repository: _repository),
       ),
     );
     if (hasil == null || !mounted) return;
 
-    setState(() => _dipilih = hasil.tanggal); // tampilkan tanggal jadwal baru
-    await _muatMinggu(paksa: true);
-    if (mounted) _snack('Jadwal berhasil ditambahkan');
+    setState(() => _dipilih = hasil.tanggal);
+    await _muat();
+    if (!mounted) return;
+    _snack('Agenda kunjungan berhasil ditambahkan.');
   }
 
   // ---------- aksi pada kartu ----------
 
   Future<void> _aksiKartu(AgendaItem item) async {
-    final id = item.id;
-    if (id == null) return;
     final selesai = item.status == StatusAgenda.selesai;
+    final dibatalkan = item.status == StatusAgenda.dibatalkan;
 
     final aksi = await showModalBottomSheet<String>(
       context: context,
@@ -124,16 +115,31 @@ class _AgendaPageState extends State<AgendaPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: Icon(
-                selesai ? Icons.event_repeat_outlined : Icons.check_circle_outline,
-                color: const Color(0xFF1D6FFF),
+            if (!dibatalkan)
+              ListTile(
+                leading: Icon(
+                  selesai
+                      ? Icons.event_repeat_outlined
+                      : Icons.check_circle_outline,
+                  color: const Color(0xFF1D6FFF),
+                ),
+                title: Text(selesai ? 'Tandai belum selesai' : 'Tandai selesai'),
+                onTap: () => Navigator.pop(ctx, 'status'),
               ),
-              title: Text(selesai ? 'Tandai belum selesai' : 'Tandai selesai'),
-              onTap: () => Navigator.pop(ctx, 'status'),
-            ),
+            if (!dibatalkan && !selesai)
+              ListTile(
+                leading: const Icon(
+                  Icons.cancel_outlined,
+                  color: Colors.orange,
+                ),
+                title: const Text('Batalkan agenda'),
+                onTap: () => Navigator.pop(ctx, 'batalkan'),
+              ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: Color(0xFFE0245E)),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFE0245E),
+              ),
               title: const Text('Hapus jadwal'),
               onTap: () => Navigator.pop(ctx, 'hapus'),
             ),
@@ -143,24 +149,80 @@ class _AgendaPageState extends State<AgendaPage> {
     );
 
     if (aksi == 'status') {
-      await _ubahStatus(item, id, selesai ? StatusAgenda.terjadwal : StatusAgenda.selesai);
+      await _ubahStatus(
+        item,
+        selesai ? StatusAgenda.terjadwal : StatusAgenda.selesai,
+      );
+    } else if (aksi == 'batalkan') {
+      await _batalkan(item);
     } else if (aksi == 'hapus') {
-      await _hapus(id);
+      await _hapus(item.id);
     }
   }
 
-  Future<void> _ubahStatus(AgendaItem item, int id, StatusAgenda baru) async {
+  Future<void> _ubahStatus(AgendaItem item, StatusAgenda baru) async {
     try {
-      final hasil = await _repo.ubahStatus(id, baru);
-      if (!mounted) return;
-      setState(() {
-        final daftar = _cache[kunciTanggal(_dipilih)];
-        if (daftar == null) return;
-        final i = daftar.indexWhere((a) => a.id == id);
-        if (i != -1) daftar[i] = hasil;
-      });
-    } catch (e) {
-      if (mounted) _snack(_pesan(e));
+      await _repository.ubahStatus(id: item.id, status: baru);
+      await _muat();
+      if (mounted) {
+        _snack(
+          baru == StatusAgenda.selesai
+              ? 'Agenda ditandai selesai.'
+              : 'Agenda ditandai terjadwal.',
+        );
+      }
+    } catch (error) {
+      if (mounted) _snack(_pesan(error), error: true);
+    }
+  }
+
+  Future<void> _tandaiSelesai(AgendaItem item) =>
+      _ubahStatus(item, StatusAgenda.selesai);
+
+  Future<void> _batalkan(AgendaItem item) async {
+    final controller = TextEditingController();
+    final alasan = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Batalkan agenda'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          maxLength: 2000,
+          decoration: const InputDecoration(
+            labelText: 'Alasan pembatalan',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kembali'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isNotEmpty) Navigator.pop(context, value);
+            },
+            child: const Text('Batalkan agenda'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (alasan == null || alasan.trim().isEmpty) return;
+
+    try {
+      await _repository.ubahStatus(
+        id: item.id,
+        status: StatusAgenda.dibatalkan,
+        alasanPembatalan: alasan,
+      );
+      await _muat();
+      if (mounted) _snack('Agenda dibatalkan dan disimpan dalam histori.');
+    } catch (error) {
+      if (mounted) _snack(_pesan(error), error: true);
     }
   }
 
@@ -185,15 +247,23 @@ class _AgendaPageState extends State<AgendaPage> {
     if (yakin != true) return;
 
     try {
-      await _repo.hapus(id);
-      if (!mounted) return;
-      setState(() {
-        _cache[kunciTanggal(_dipilih)]?.removeWhere((a) => a.id == id);
-      });
-      _snack('Jadwal dihapus');
-    } catch (e) {
-      if (mounted) _snack(_pesan(e));
+      await _repository.hapus(id);
+      await _muat();
+      if (mounted) _snack('Jadwal dihapus.');
+    } catch (error) {
+      if (mounted) _snack(_pesan(error), error: true);
     }
+  }
+
+  void _snack(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: error ? Colors.red.shade700 : null,
+        ),
+      );
   }
 
   // ---------- tampilan ----------
@@ -202,16 +272,12 @@ class _AgendaPageState extends State<AgendaPage> {
   Widget build(BuildContext context) {
     final agenda = _agendaTerpilih;
     final adalahHariIni = kunciTanggal(_dipilih) == kunciTanggal(hariIni());
-    final tanggalAdaAgenda = _cache.entries
-        .where((e) => e.value.isNotEmpty)
-        .map((e) => e.key)
-        .toSet();
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: RefreshIndicator(
-        onRefresh: () => _muatMinggu(paksa: true),
+        onRefresh: _muat,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -220,62 +286,56 @@ class _AgendaPageState extends State<AgendaPage> {
             const SizedBox(height: 18),
             StripTanggalAgenda(
               dipilih: _dipilih,
-              tanggalAdaAgenda: tanggalAdaAgenda,
               onPilihTanggal: _pilihTanggal,
               onGeserMinggu: _geserMinggu,
               onHariIni: () => _pilihTanggal(hariIni()),
+              tanggalDenganAgenda: _tanggalDenganAgenda,
             ),
             const SizedBox(height: 18),
             _buildJudulHari(agenda.length),
             if (_memuat)
               const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: LinearProgressIndicator(minHeight: 2),
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _muat,
+                      child: const Text('Coba lagi'),
+                    ),
+                  ],
+                ),
+              )
+            else if (agenda.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'Belum ada kunjungan di tanggal ini.',
+                    style: TextStyle(color: Color(0xFF94A3B8)),
+                  ),
+                ),
+              )
+            else
+              ...agenda.map(
+                (item) => KartuAgenda(
+                  item: item,
+                  onSelesai: () => _tandaiSelesai(item),
+                  onBatalkan: () => _batalkan(item),
+                ),
               ),
-            ..._buildIsi(agenda),
             const SizedBox(height: 16),
             TombolTambahJadwal(onTap: _tambahJadwal),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _buildIsi(List<AgendaItem> agenda) {
-    if (_error != null) {
-      return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: Column(
-            children: [
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => _muatMinggu(paksa: true),
-                child: const Text('Coba lagi'),
-              ),
-            ],
-          ),
-        ),
-      ];
-    }
-    if (agenda.isEmpty) {
-      if (_memuat) return const [SizedBox(height: 40)];
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              'Belum ada kunjungan di tanggal ini.',
-              style: TextStyle(color: Color(0xFF94A3B8)),
-            ),
-          ),
-        ),
-      ];
-    }
-    return agenda
-        .map((a) => KartuAgenda(item: a, onTap: () => _aksiKartu(a)))
-        .toList();
   }
 
   Widget _buildJudulHari(int jumlah) {
@@ -304,24 +364,6 @@ class _AgendaPageState extends State<AgendaPage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      foregroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: false,
-      titleSpacing: 0,
-      title: const Text(
-        'Agenda',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-      ),
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
-          ),
-        ),
-      ),
-    );
+    return const EpklGradientAppBar(judul: 'Agenda');
   }
 }

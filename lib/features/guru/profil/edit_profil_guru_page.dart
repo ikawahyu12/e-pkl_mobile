@@ -1,12 +1,13 @@
-// Simpan di: lib/features/guru/profil/edit_profil_guru_page.dart (timpa file lama)
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../data/models/profil_guru_model.dart';
+import '../../../data/repositories/guru_auth_repository_api.dart';
 import '../../../data/repositories/profil_guru_repository.dart';
 import '../../../data/repositories/profil_guru_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 /// Halaman edit profil guru.
 /// - [profil]: data awal. Kalau null, halaman memuatnya sendiri dari repository.
@@ -33,21 +34,26 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   final _formKey = GlobalKey<FormState>();
   final _namaCtrl = TextEditingController();
   final _nipCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
+  final _emailAktifCtrl = TextEditingController();
+  final _emailBaruCtrl = TextEditingController();
   final _hpCtrl = TextEditingController();
 
   ProfilGuru? _profil;
   bool _memuat = false;
   bool _menyimpan = false;
+  bool _mengirimEmail = false;
   String? _errorMuat;
 
   XFile? _foto;
   Uint8List? _fotoBytes;
+  String? _fotoNama;
 
   @override
   void initState() {
     super.initState();
-    _repo = widget.repository ?? ProfilGuruRepositoryApi();
+    _repo =
+        widget.repository ??
+        ProfilGuruRepositoryApi(authRepository: GuruAuthRepositoryApi());
     _profil = widget.profil;
     if (_profil != null) {
       _isi(_profil!);
@@ -60,7 +66,8 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   void dispose() {
     _namaCtrl.dispose();
     _nipCtrl.dispose();
-    _emailCtrl.dispose();
+    _emailAktifCtrl.dispose();
+    _emailBaruCtrl.dispose();
     _hpCtrl.dispose();
     super.dispose();
   }
@@ -68,7 +75,7 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   void _isi(ProfilGuru p) {
     _namaCtrl.text = p.nama;
     _nipCtrl.text = p.nip;
-    _emailCtrl.text = p.email ?? '';
+    _emailAktifCtrl.text = p.email ?? '';
     _hpCtrl.text = p.noHp ?? '';
   }
 
@@ -96,10 +103,16 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
 
   String _pesan(Object e) => e.toString().replaceFirst('Exception: ', '');
 
-  void _snack(String teks) {
+  void _snack(String teks, {bool error = false}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(teks)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(teks),
+          backgroundColor: error ? Colors.red.shade600 : null,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   String? _nullKalauKosong(String teks) {
@@ -107,26 +120,98 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
     return t.isEmpty ? null : t;
   }
 
-  Future<void> _pilihFoto() async {
+  String? _validasiNama(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Nama wajib diisi';
+    if (v.trim().length > 120) return 'Nama maksimal 120 karakter';
+    return null;
+  }
+
+  String? _validasiEmail(String? v) {
+    final t = (v ?? '').trim();
+    if (t.isEmpty) return null;
+    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t);
+    return ok ? null : 'Format email tidak valid';
+  }
+
+  String? _validasiHp(String? v) {
+    final t = (v ?? '').trim();
+    if (t.isEmpty) return null;
+    final ok = RegExp(r'^[0-9+\s-]{8,20}$').hasMatch(t);
+    return ok ? null : 'Nomor HP tidak valid';
+  }
+
+  Future<void> _pilihFoto(ImageSource source) async {
     try {
-      final dipilih = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
+      final picked = await ImagePicker().pickImage(
+        source: source,
         imageQuality: 85,
+        maxWidth: 1600,
       );
-      if (dipilih == null) return;
-      final bytes = await dipilih.readAsBytes();
-      if (bytes.length > _maksFoto) {
-        _snack('Ukuran foto maksimal 2 MB.');
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.lengthInBytes > _maksFoto) {
+        if (mounted) _snack('Ukuran foto maksimal 2 MB.');
         return;
       }
       if (!mounted) return;
       setState(() {
-        _foto = dipilih;
+        _foto = picked;
         _fotoBytes = bytes;
+        _fotoNama = picked.name;
       });
     } catch (_) {
-      _snack('Foto tidak dapat dipilih.');
+      if (mounted) _snack('Foto tidak dapat dibuka. Coba lagi.');
+    }
+  }
+
+  Future<void> _tampilkanPilihanFoto() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pilih dari galeri'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pilihFoto(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Ambil dengan kamera'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pilihFoto(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _kirimTautanEmail() async {
+    final email = _emailBaruCtrl.text.trim();
+    final error = _validasiEmail(email);
+    if (error != null || email.isEmpty) {
+      _snack(error ?? 'Masukkan email baru terlebih dahulu.');
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _mengirimEmail = true);
+    try {
+      await _repo.ajukanPerubahanEmail(email);
+      if (!mounted) return;
+      _snack('Tautan verifikasi dikirim. Email aktif belum berubah.');
+      _emailBaruCtrl.clear();
+    } catch (e) {
+      if (!mounted) return;
+      _snack(_pesan(e), error: true);
+    } finally {
+      if (mounted) setState(() => _mengirimEmail = false);
     }
   }
 
@@ -137,8 +222,9 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
     try {
       final hasil = await _repo.ubahProfil(
         nama: _namaCtrl.text.trim(),
-        email: _nullKalauKosong(_emailCtrl.text),
         noHp: _nullKalauKosong(_hpCtrl.text),
+        fotoBytes: _fotoBytes,
+        fotoNama: _fotoNama,
         foto: _foto,
       );
       if (!mounted) return;
@@ -146,8 +232,13 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
       Navigator.of(context).pop(hasil);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _menyimpan = false);
-      _snack(_pesan(e));
+      final teksError = _pesan(e).trim();
+      _snack(
+        teksError.isEmpty ? 'Gagal menyimpan profil. Coba lagi.' : teksError,
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
     }
   }
 
@@ -157,18 +248,7 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 0,
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        titleSpacing: 0,
-        title: const Text(
-          'Edit Profil',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Edit Profil'),
       body: SafeArea(child: _isiHalaman()),
     );
   }
@@ -182,8 +262,10 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_errorMuat ?? 'Data profil tidak tersedia.',
-                  textAlign: TextAlign.center),
+              Text(
+                _errorMuat ?? 'Data profil tidak tersedia.',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               FilledButton(onPressed: _muat, child: const Text('Coba lagi')),
             ],
@@ -195,12 +277,14 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           _kartuFoto(),
           const SizedBox(height: 22),
-          const Text('Data diri',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            'Data diri',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _namaCtrl,
@@ -208,46 +292,65 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
             decoration: _dekor('Nama lengkap & gelar', Icons.person_outline),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Nama wajib diisi';
-              if (v.trim().length > 120) return 'Nama maksimal 120 karakter';
-              return null;
-            },
+            validator: _validasiNama,
           ),
           const SizedBox(height: 14),
           TextFormField(
             controller: _nipCtrl,
             enabled: false,
-            decoration: _dekor('NIP', Icons.badge_outlined,
-                helper: 'NIP tidak dapat diubah'),
+            decoration: _dekor(
+              'NIP',
+              Icons.badge_outlined,
+              helper: 'NIP tidak dapat diubah',
+            ),
           ),
           const SizedBox(height: 14),
           TextFormField(
-            controller: _emailCtrl,
-            enabled: !_menyimpan,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            decoration: _dekor('Email', Icons.mail_outline),
-            validator: (v) {
-              final t = (v ?? '').trim();
-              if (t.isEmpty) return null;
-              final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t);
-              return ok ? null : 'Format email tidak valid';
-            },
+            controller: _emailAktifCtrl,
+            enabled: false,
+            decoration: _dekor(
+              'Email aktif',
+              Icons.mail_outline,
+              helper: 'Email hanya berubah setelah verifikasi.',
+            ),
           ),
           const SizedBox(height: 14),
+          TextFormField(
+            controller: _emailBaruCtrl,
+            enabled: !_menyimpan && !_mengirimEmail,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            decoration: _dekor(
+              'Email baru (verifikasi)',
+              Icons.mark_email_unread_outlined,
+            ),
+            validator: _validasiEmail,
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: (_menyimpan || _mengirimEmail)
+                  ? null
+                  : _kirimTautanEmail,
+              icon: _mengirimEmail
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.mark_email_read_outlined, size: 18),
+              label: const Text('Kirim tautan verifikasi'),
+            ),
+          ),
+          const SizedBox(height: 10),
           TextFormField(
             controller: _hpCtrl,
             enabled: !_menyimpan,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
             decoration: _dekor('Nomor HP', Icons.phone_outlined),
-            validator: (v) {
-              final t = (v ?? '').trim();
-              if (t.isEmpty) return null;
-              final ok = RegExp(r'^[0-9+\s-]{8,20}$').hasMatch(t);
-              return ok ? null : 'Nomor HP tidak valid';
-            },
+            validator: _validasiHp,
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -307,7 +410,7 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: _menyimpan ? null : _pilihFoto,
+            onTap: _menyimpan ? null : _tampilkanPilihanFoto,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -315,7 +418,9 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
                   radius: 46,
                   backgroundColor: Colors.white,
                   backgroundImage: gambar,
-                  onBackgroundImageError: gambar is NetworkImage ? (_, __) {} : null,
+                  onBackgroundImageError: gambar is NetworkImage
+                      ? (_, _) {}
+                      : null,
                   child: gambar == null
                       ? Text(
                           p.inisial,
@@ -337,8 +442,11 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
                       shape: BoxShape.circle,
                       border: Border.all(color: _biru, width: 2),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        size: 16, color: _biru),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      size: 16,
+                      color: _biru,
+                    ),
                   ),
                 ),
               ],
@@ -356,7 +464,9 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            _foto != null ? 'Foto baru siap disimpan' : 'Ketuk foto untuk mengubah',
+            _fotoBytes != null
+                ? 'Foto baru siap disimpan'
+                : 'Ketuk foto untuk mengubah',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],

@@ -1,15 +1,22 @@
-// Simpan di: lib/features/guru/profil/ganti_password_page.dart (timpa file lama)
 import 'package:flutter/material.dart';
 
-import '../../../data/repositories/profil_guru_repository.dart';
-import '../../../data/repositories/profil_guru_repository_api.dart';
+import '../../../data/repositories/guru_auth_repository.dart';
+import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 /// Halaman keamanan akun: ganti kata sandi.
-/// [repository] opsional; kalau null, memakai ProfilGuruRepositoryApi.
+/// Mendukung mode opsional maupun mode wajib ganti saat login pertama kali.
 class GantiPasswordPage extends StatefulWidget {
-  final ProfilGuruRepository? repository;
+  final GuruAuthRepository? repository;
+  final bool wajibGanti;
+  final VoidCallback? onPasswordChanged;
 
-  const GantiPasswordPage({super.key, this.repository});
+  const GantiPasswordPage({
+    super.key,
+    this.repository,
+    this.wajibGanti = false,
+    this.onPasswordChanged,
+  }) : assert(!wajibGanti || onPasswordChanged != null);
 
   @override
   State<GantiPasswordPage> createState() => _GantiPasswordPageState();
@@ -21,7 +28,7 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
   static const _isiField = Color(0xFFF8F9FB);
   static const _merah = Color(0xFFE0245E);
 
-  late final ProfilGuruRepository _repo;
+  late final GuruAuthRepository _repo;
   final _formKey = GlobalKey<FormState>();
   final _lamaCtrl = TextEditingController();
   final _baruCtrl = TextEditingController();
@@ -35,7 +42,7 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
   @override
   void initState() {
     super.initState();
-    _repo = widget.repository ?? ProfilGuruRepositoryApi();
+    _repo = widget.repository ?? GuruAuthRepositoryApi();
   }
 
   @override
@@ -48,10 +55,34 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
 
   String _pesan(Object e) => e.toString().replaceFirst('Exception: ', '');
 
-  void _snack(String teks) {
+  void _snack(String teks, {bool error = false}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(teks)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(teks),
+          backgroundColor: error ? Colors.red.shade600 : null,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  String? _validasiLama(String? v) =>
+      (v == null || v.isEmpty) ? 'Kata sandi lama wajib diisi' : null;
+
+  String? _validasiBaru(String? v) {
+    if (v == null || v.isEmpty) return 'Kata sandi baru wajib diisi';
+    if (v.length < 8) return 'Minimal 8 karakter';
+    if (v == _lamaCtrl.text) {
+      return 'Kata sandi baru harus berbeda dari yang lama';
+    }
+    return null;
+  }
+
+  String? _validasiKonfirmasi(String? v) {
+    if (v == null || v.isEmpty) return 'Konfirmasi wajib diisi';
+    if (v != _baruCtrl.text) return 'Konfirmasi tidak sama';
+    return null;
   }
 
   Future<void> _simpan() async {
@@ -62,14 +93,24 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
       await _repo.gantiPassword(
         passwordLama: _lamaCtrl.text,
         passwordBaru: _baruCtrl.text,
+        passwordBaruConfirmation: _konfirmCtrl.text,
       );
       if (!mounted) return;
       _snack('Kata sandi berhasil diubah.');
-      Navigator.of(context).pop(true);
+      if (widget.wajibGanti) {
+        widget.onPasswordChanged!();
+      } else {
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _menyimpan = false);
-      _snack(_pesan(e));
+      final pesan = _pesan(e).trim();
+      _snack(
+        pesan.isEmpty ? 'Gagal mengubah kata sandi' : pesan,
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
     }
   }
 
@@ -77,118 +118,136 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return PopScope(
+      canPop: !widget.wajibGanti,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 0,
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        titleSpacing: 0,
-        title: const Text(
-          'Keamanan Akun',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        appBar: EpklGradientAppBar(
+          judul: widget.wajibGanti ? 'Wajib Ganti Kata Sandi' : 'Keamanan Akun',
+          tampilkanTombolKembali: !widget.wajibGanti,
         ),
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              _kartuInfo(),
-              const SizedBox(height: 22),
-              const Text('Ganti kata sandi',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _lamaCtrl,
-                enabled: !_menyimpan,
-                obscureText: !_lihatLama,
-                textInputAction: TextInputAction.next,
-                decoration: _dekor(
-                  'Kata sandi lama',
-                  Icons.lock_outline,
-                  lihat: _lihatLama,
-                  onToggle: () => setState(() => _lihatLama = !_lihatLama),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Kata sandi lama wajib diisi' : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _baruCtrl,
-                enabled: !_menyimpan,
-                obscureText: !_lihatBaru,
-                textInputAction: TextInputAction.next,
-                decoration: _dekor(
-                  'Kata sandi baru',
-                  Icons.lock_reset_outlined,
-                  helper: 'Minimal 8 karakter',
-                  lihat: _lihatBaru,
-                  onToggle: () => setState(() => _lihatBaru = !_lihatBaru),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Kata sandi baru wajib diisi';
-                  if (v.length < 8) return 'Minimal 8 karakter';
-                  if (v == _lamaCtrl.text) {
-                    return 'Kata sandi baru harus berbeda dari yang lama';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _konfirmCtrl,
-                enabled: !_menyimpan,
-                obscureText: !_lihatKonfirm,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _simpan(),
-                decoration: _dekor(
-                  'Konfirmasi kata sandi baru',
-                  Icons.verified_user_outlined,
-                  lihat: _lihatKonfirm,
-                  onToggle: () =>
-                      setState(() => _lihatKonfirm = !_lihatKonfirm),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Konfirmasi wajib diisi';
-                  if (v != _baruCtrl.text) return 'Konfirmasi tidak sama';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: _menyimpan ? null : _simpan,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _biru,
-                    disabledBackgroundColor: _biru.withValues(alpha: 0.6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                if (widget.wajibGanti) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7ED),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFED7AA)),
                     ),
-                  ),
-                  child: _menyimpan
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Ubah kata sandi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.deepOrange,
+                          size: 22,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Kata sandi sementara harus diganti sebelum menggunakan aplikasi.',
+                            style: TextStyle(
+                              color: Colors.deepOrange,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _kartuInfo(),
+                const SizedBox(height: 22),
+                const Text(
+                  'Ganti kata sandi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _lamaCtrl,
+                  enabled: !_menyimpan,
+                  obscureText: !_lihatLama,
+                  textInputAction: TextInputAction.next,
+                  decoration: _dekor(
+                    'Kata sandi lama',
+                    Icons.lock_outline,
+                    lihat: _lihatLama,
+                    onToggle: () => setState(() => _lihatLama = !_lihatLama),
+                  ),
+                  validator: _validasiLama,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _baruCtrl,
+                  enabled: !_menyimpan,
+                  obscureText: !_lihatBaru,
+                  textInputAction: TextInputAction.next,
+                  decoration: _dekor(
+                    'Kata sandi baru',
+                    Icons.lock_reset_outlined,
+                    helper: 'Minimal 8 karakter',
+                    lihat: _lihatBaru,
+                    onToggle: () => setState(() => _lihatBaru = !_lihatBaru),
+                  ),
+                  validator: _validasiBaru,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _konfirmCtrl,
+                  enabled: !_menyimpan,
+                  obscureText: !_lihatKonfirm,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _simpan(),
+                  decoration: _dekor(
+                    'Konfirmasi kata sandi baru',
+                    Icons.verified_user_outlined,
+                    lihat: _lihatKonfirm,
+                    onToggle: () =>
+                        setState(() => _lihatKonfirm = !_lihatKonfirm),
+                  ),
+                  validator: _validasiKonfirmasi,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _menyimpan ? null : _simpan,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _biru,
+                      disabledBackgroundColor: _biru.withValues(alpha: 0.6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _menyimpan
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Ubah kata sandi',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -212,7 +271,11 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
             child: Text(
               'Setelah kata sandi diubah, perangkat lain yang masih login '
               'akan keluar otomatis. Perangkat ini tetap masuk.',
-              style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF26446E)),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: Color(0xFF26446E),
+              ),
             ),
           ),
         ],

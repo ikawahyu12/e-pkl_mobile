@@ -1,61 +1,146 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/repositories/agenda_repository_api.dart';
+import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../data/repositories/guru_presensi_repository_api.dart';
+import '../../../data/repositories/instansi_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
+
+enum _JenisWaktuPresensi {
+  masukMulai,
+  masukSelesai,
+  pulangMulai,
+  pulangSelesai,
+}
+
 class BuatPresensiPage extends StatefulWidget {
-  const BuatPresensiPage({super.key});
+  final AgendaRepository? agendaRepository;
+  final InstansiRepository? instansiRepository;
+  final GuruPresensiRepository? presensiRepository;
+
+  const BuatPresensiPage({
+    super.key,
+    this.agendaRepository,
+    this.instansiRepository,
+    this.presensiRepository,
+  });
 
   @override
   State<BuatPresensiPage> createState() => _BuatPresensiPageState();
 }
 
 class _BuatPresensiPageState extends State<BuatPresensiPage> {
-  // --- STATE INTERAKTIF ---
-  String _selectedInstansi = 'SMK Negeri 1 Bandung';
-  final List<String> _instansiList = [
-    'SMK Negeri 1 Bandung',
-    'SMK Negeri 2 Bandung',
-    'SMK Negeri 3 Bandung',
-  ];
+  late final AgendaRepository _agendaRepository =
+      widget.agendaRepository ??
+      AgendaRepositoryApi(authRepository: GuruAuthRepositoryApi());
+  late final InstansiRepository _instansiRepository =
+      widget.instansiRepository ?? InstansiRepository();
+  late final GuruPresensiRepository _presensiRepository =
+      widget.presensiRepository ??
+      GuruPresensiRepositoryApi(authRepository: GuruAuthRepositoryApi());
+
+  List<InstansiOption> _instansiList = [];
+  List<AgendaInstansiOption> _opsiInstansiSiswa = [];
+  int? _selectedInstansiId;
+  bool _memuatInstansi = true;
+  bool _memuatSiswa = true;
+  String? _errorInstansi;
+  String? _errorSiswa;
+  bool _menyimpan = false;
+  final Set<int> _siswaHadir = {};
+  int _siswaLoadId = 0;
 
   DateTime _selectedDate = DateTime.now();
 
-  String _selectedShift = 'Pagi';
+  TimeOfDay _jamMasukMulai = const TimeOfDay(hour: 7, minute: 0);
+  TimeOfDay _jamMasukSelesai = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _jamPulangMulai = const TimeOfDay(hour: 12, minute: 0);
+  TimeOfDay _jamPulangSelesai = const TimeOfDay(hour: 16, minute: 0);
 
-  // UBAH TIPE DATA MENJADI TimeOfDay AGAR BISA DIUBAH
-  TimeOfDay _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
-  TimeOfDay _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
+  AgendaInstansiOption? get _instansiSiswaTerpilih {
+    for (final opsi in _opsiInstansiSiswa) {
+      if (opsi.id == _selectedInstansiId) return opsi;
+    }
+    return null;
+  }
 
-  // Data siswa
-  final List<Map<String, dynamic>> _siswaList = [
-    {
-      'id': 1,
-      'nama': 'Ahmad Rizky Pratama',
-      'nis': '1234567890',
-      'kelas': 'XI RPL 1',
-      'hadir': true,
-    },
-    {
-      'id': 2,
-      'nama': 'Budi Santoso',
-      'nis': '1234567891',
-      'kelas': 'XI RPL 1',
-      'hadir': true,
-    },
-    {
-      'id': 3,
-      'nama': 'Citra Lestari',
-      'nis': '1234567892',
-      'kelas': 'XI RPL 2',
-      'hadir': false,
-    },
-  ];
+  List<AgendaSiswaOption> get _siswaList =>
+      _instansiSiswaTerpilih?.siswa ?? const [];
 
-  // --- FUNGSI PILIH TANGGAL ---
+  @override
+  void initState() {
+    super.initState();
+    _muatInstansi();
+    _muatSiswa();
+  }
+
+  Future<void> _muatInstansi() async {
+    setState(() {
+      _memuatInstansi = true;
+      _errorInstansi = null;
+    });
+    try {
+      final instansi = await _instansiRepository.ambilDaftar();
+      if (!mounted) return;
+      setState(() {
+        _instansiList = instansi;
+        if (!_instansiList.any((item) => item.id == _selectedInstansiId)) {
+          _selectedInstansiId = _instansiList.isEmpty
+              ? null
+              : _instansiList.first.id;
+        }
+        _siswaHadir.addAll(_siswaList.map((siswa) => siswa.id));
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _errorInstansi = error.toString());
+    } finally {
+      if (mounted) setState(() => _memuatInstansi = false);
+    }
+  }
+
+  Future<void> _muatSiswa() async {
+    final loadId = ++_siswaLoadId;
+    setState(() {
+      _memuatSiswa = true;
+      _errorSiswa = null;
+      _opsiInstansiSiswa = [];
+      _siswaHadir.clear();
+    });
+    try {
+      final options = await _agendaRepository.ambilOpsi(_selectedDate);
+      if (!mounted || loadId != _siswaLoadId) return;
+      setState(() {
+        _opsiInstansiSiswa = options;
+        _siswaHadir.addAll(_siswaList.map((siswa) => siswa.id));
+      });
+    } catch (error) {
+      if (!mounted || loadId != _siswaLoadId) return;
+      setState(() => _errorSiswa = error.toString());
+    } finally {
+      if (mounted && loadId == _siswaLoadId) {
+        setState(() => _memuatSiswa = false);
+      }
+    }
+  }
+
+  void _pilihInstansi(int? instansiId) {
+    if (instansiId == null) return;
+    setState(() {
+      _selectedInstansiId = instansiId;
+      _siswaHadir
+        ..clear()
+        ..addAll(_siswaList.map((siswa) => siswa.id));
+    });
+  }
+
   Future<void> _pilihTanggal() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
+      firstDate: today,
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
@@ -72,14 +157,20 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
     );
     if (mounted && picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
+      await _muatSiswa();
     }
   }
 
-  // --- FUNGSI BARU: PILIH JAM (CHECK-IN / CHECK-OUT) ---
-  Future<void> _pilihJam(bool isCheckIn) async {
+  Future<void> _pilihJam(_JenisWaktuPresensi jenis) async {
+    final initialTime = switch (jenis) {
+      _JenisWaktuPresensi.masukMulai => _jamMasukMulai,
+      _JenisWaktuPresensi.masukSelesai => _jamMasukSelesai,
+      _JenisWaktuPresensi.pulangMulai => _jamPulangMulai,
+      _JenisWaktuPresensi.pulangSelesai => _jamPulangSelesai,
+    };
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isCheckIn ? _jamCheckIn : _jamCheckOut,
+      initialTime: initialTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -96,137 +187,134 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
 
     if (mounted && picked != null) {
       setState(() {
-        if (isCheckIn) {
-          _jamCheckIn = picked;
-        } else {
-          _jamCheckOut = picked;
+        switch (jenis) {
+          case _JenisWaktuPresensi.masukMulai:
+            _jamMasukMulai = picked;
+          case _JenisWaktuPresensi.masukSelesai:
+            _jamMasukSelesai = picked;
+          case _JenisWaktuPresensi.pulangMulai:
+            _jamPulangMulai = picked;
+          case _JenisWaktuPresensi.pulangSelesai:
+            _jamPulangSelesai = picked;
         }
       });
     }
   }
 
-  void _tambahSiswa() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String newNama = '';
-        String newNis = '';
-        return AlertDialog(
-          title: const Text('Tambah Siswa Manual'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: 'Nama Siswa'),
-                onChanged: (val) => newNama = val,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'NIS'),
-                onChanged: (val) => newNis = val,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (newNama.isNotEmpty && newNis.isNotEmpty) {
-                  setState(() {
-                    _siswaList.add({
-                      'id': DateTime.now().millisecondsSinceEpoch,
-                      'nama': newNama,
-                      'nis': newNis,
-                      'kelas': 'Manual',
-                      'hadir': true,
-                    });
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Tambah'),
-            ),
-          ],
+  String _formatJam(TimeOfDay waktu) =>
+      '${waktu.hour.toString().padLeft(2, '0')}:${waktu.minute.toString().padLeft(2, '0')}';
+
+  int _menit(TimeOfDay waktu) => waktu.hour * 60 + waktu.minute;
+
+  Future<void> _simpanPresensi() async {
+    if (_menyimpan) return;
+    if (_memuatInstansi || _memuatSiswa) {
+      _tampilkanPesan('Tunggu sampai data instansi dan siswa selesai dimuat.');
+      return;
+    }
+    if (_selectedInstansiId == null) {
+      _tampilkanPesan('Pilih instansi terlebih dahulu.');
+      return;
+    }
+    if (_siswaHadir.isEmpty) {
+      _tampilkanPesan('Pilih minimal satu siswa.');
+      return;
+    }
+    if (_menit(_jamMasukSelesai) <= _menit(_jamMasukMulai)) {
+      _tampilkanPesan('Batas check-in harus setelah waktu mulai check-in.');
+      return;
+    }
+    if (_menit(_jamPulangMulai) <= _menit(_jamMasukSelesai)) {
+      _tampilkanPesan('Waktu mulai check-out harus setelah batas check-in.');
+      return;
+    }
+    if (_menit(_jamPulangSelesai) <= _menit(_jamPulangMulai)) {
+      _tampilkanPesan('Batas check-out harus setelah waktu mulai check-out.');
+      return;
+    }
+
+    setState(() => _menyimpan = true);
+    try {
+      await _presensiRepository.bukaSesi(
+        instansiId: _selectedInstansiId!,
+        siswaIds: _siswaHadir.toList()..sort(),
+        tanggal: _selectedDate,
+        jamMasukMulai: _formatJam(_jamMasukMulai),
+        jamMasukSelesai: _formatJam(_jamMasukSelesai),
+        jamPulangMulai: _formatJam(_jamPulangMulai),
+        jamPulangSelesai: _formatJam(_jamPulangSelesai),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Sesi presensi berhasil dibuka.')),
         );
-      },
-    );
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) _tampilkanPesan(error.toString());
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
   }
 
-  void _simpanPresensi() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Backend belum tersedia'),
-        content: const Text(
-          'Form ini masih berupa prototipe. Data presensi belum disimpan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Mengerti'),
-          ),
-        ],
-      ),
-    );
+  void _tampilkanPesan(String pesan) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(pesan)));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Format waktu ke string untuk ditampilkan di UI
-    final timeCheckInStr =
-        '${_jamCheckIn.hour.toString().padLeft(2, '0')}:${_jamCheckIn.minute.toString().padLeft(2, '0')}';
-    final timeCheckOutStr =
-        '${_jamCheckOut.hour.toString().padLeft(2, '0')}:${_jamCheckOut.minute.toString().padLeft(2, '0')}';
-
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF48A2E6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Buat Presensi",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Buat Presensi'),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Card(
-            color: Colors.amber.shade50,
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Mode prototipe: data siswa dan instansi contoh. Backend presensi belum tersedia; data tidak akan disimpan.',
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
           _buildLabel("PILIH INSTANSI"),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedInstansi,
+          DropdownButtonFormField<int>(
+            key: ValueKey(_selectedInstansiId),
+            initialValue: _selectedInstansiId,
             isExpanded: true,
+            hint: Text(
+              _memuatInstansi
+                  ? 'Memuat instansi...'
+                  : _instansiList.isEmpty
+                  ? 'Tidak ada instansi aktif'
+                  : 'Pilih instansi',
+            ),
             decoration: _inputDecoration(),
             icon: const Icon(Icons.business, color: Colors.blue),
-            items: _instansiList.map((String instansi) {
-              return DropdownMenuItem<String>(
-                value: instansi,
+            items: _instansiList.map((instansi) {
+              return DropdownMenuItem<int>(
+                value: instansi.id,
                 child: Text(
-                  instansi,
+                  instansi.nama,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 14),
                 ),
               );
             }).toList(),
-            onChanged: (newValue) {
-              setState(() => _selectedInstansi = newValue!);
-            },
+            onChanged: _memuatInstansi || _instansiList.isEmpty
+                ? null
+                : _pilihInstansi,
           ),
+          if (_errorInstansi != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorInstansi!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _muatInstansi,
+                child: const Text('Coba lagi'),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           _buildLabel("TANGGAL ABSENSI"),
@@ -264,42 +352,31 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
           ),
           const SizedBox(height: 16),
 
-          _buildLabel("PILIH SHIFT"),
+          _buildLabel("WAKTU CHECK-IN"),
           _responsivePair(
-            _buildShiftCard(
-              "Shift Pagi",
-              "07:00 - 12:00",
-              _selectedShift == 'Pagi',
-              () => setState(() {
-                _selectedShift = 'Pagi';
-                _jamCheckIn = const TimeOfDay(hour: 7, minute: 30);
-                _jamCheckOut = const TimeOfDay(hour: 12, minute: 0);
-              }),
+            _buildTimeInfo(
+              "MULAI",
+              _formatJam(_jamMasukMulai),
+              () => _pilihJam(_JenisWaktuPresensi.masukMulai),
             ),
-            _buildShiftCard(
-              "Shift Sore",
-              "13:00 - 17:00",
-              _selectedShift == 'Sore',
-              () => setState(() {
-                _selectedShift = 'Sore';
-                _jamCheckIn = const TimeOfDay(hour: 12, minute: 0);
-                _jamCheckOut = const TimeOfDay(hour: 17, minute: 0);
-              }),
+            _buildTimeInfo(
+              "BATAS",
+              _formatJam(_jamMasukSelesai),
+              () => _pilihJam(_JenisWaktuPresensi.masukSelesai),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // --- BAGIAN JAM YANG SUDAH DINAMIS ---
+          const SizedBox(height: 12),
+          _buildLabel("WAKTU CHECK-OUT"),
           _responsivePair(
             _buildTimeInfo(
-              "BATAS CHECK-IN",
-              timeCheckInStr,
-              () => _pilihJam(true),
+              "MULAI",
+              _formatJam(_jamPulangMulai),
+              () => _pilihJam(_JenisWaktuPresensi.pulangMulai),
             ),
             _buildTimeInfo(
-              "BATAS CHECK-OUT",
-              timeCheckOutStr,
-              () => _pilihJam(false),
+              "BATAS",
+              _formatJam(_jamPulangSelesai),
+              () => _pilihJam(_JenisWaktuPresensi.pulangSelesai),
             ),
           ),
           const SizedBox(height: 24),
@@ -311,19 +388,16 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
             runSpacing: 4,
             children: [
               _buildLabel("PILIH SISWA"),
-              TextButton.icon(
-                onPressed: _tambahSiswa,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text("Tambah", style: TextStyle(fontSize: 12)),
-              ),
               TextButton(
                 onPressed: () {
                   final allSelected = _siswaList.every(
-                    (s) => s['hadir'] == true,
+                    (siswa) => _siswaHadir.contains(siswa.id),
                   );
                   setState(() {
-                    for (final siswa in _siswaList) {
-                      siswa['hadir'] = !allSelected;
+                    if (allSelected) {
+                      _siswaHadir.clear();
+                    } else {
+                      _siswaHadir.addAll(_siswaList.map((siswa) => siswa.id));
                     }
                   });
                 },
@@ -335,27 +409,68 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
             ],
           ),
           const SizedBox(height: 8),
-          ..._siswaList.map(_buildSiswaCard),
+          if (_memuatSiswa)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_errorSiswa != null)
+            Column(
+              children: [
+                Text(
+                  _errorSiswa!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+                TextButton(
+                  onPressed: _muatSiswa,
+                  child: const Text('Coba lagi'),
+                ),
+              ],
+            )
+          else if (_siswaList.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                _selectedInstansiId == null
+                    ? 'Pilih instansi untuk melihat daftar siswa.'
+                    : 'Tidak ada siswa untuk instansi ini pada tanggal terpilih.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+            )
+          else
+            ..._siswaList.map(_buildSiswaCard),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _simpanPresensi,
+              onPressed: _menyimpan ? null : _simpanPresensi,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF48A2E6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                "Simpan Absensi",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              child: _menyimpan
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      "Simpan Absensi",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -423,70 +538,6 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
     );
   }
 
-  Widget _buildShiftCard(
-    String title,
-    String time,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.shade50 : Colors.white,
-          border: Border.all(
-            color: isSelected ? const Color(0xFF48A2E6) : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: isSelected ? const Color(0xFF48A2E6) : Colors.grey,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: isSelected
-                          ? const Color(0xFF48A2E6)
-                          : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    time,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isSelected ? const Color(0xFF48A2E6) : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- MODIFIKASI: WIDGET JAM KINI BISA DIKLIK (onTap) ---
   Widget _buildTimeInfo(String title, String time, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -526,11 +577,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
                     ),
                   ),
                 ),
-                const Icon(
-                  Icons.edit,
-                  size: 14,
-                  color: Colors.blue,
-                ), // Ikon tambahan sebagai penanda bisa diedit
+                const Icon(Icons.edit, size: 14, color: Colors.blue),
               ],
             ),
           ],
@@ -539,7 +586,15 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
     );
   }
 
-  Widget _buildSiswaCard(Map<String, dynamic> siswa) {
+  Widget _buildSiswaCard(AgendaSiswaOption siswa) {
+    final nama = siswa.nama.trim();
+    final initials = nama.isEmpty
+        ? '?'
+        : nama.substring(0, nama.length < 2 ? nama.length : 2).toUpperCase();
+    final detail = [
+      if (siswa.nis != null && siswa.nis!.isNotEmpty) 'NIS. ${siswa.nis}',
+      if (siswa.kelas != null && siswa.kelas!.isNotEmpty) siswa.kelas!,
+    ].join(' • ');
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -553,7 +608,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
           CircleAvatar(
             backgroundColor: const Color(0xFF48A2E6).withValues(alpha: 0.2),
             child: Text(
-              siswa['nama'].substring(0, 2).toUpperCase(),
+              initials,
               style: const TextStyle(
                 color: Color(0xFF48A2E6),
                 fontWeight: FontWeight.bold,
@@ -567,25 +622,30 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  siswa['nama'],
+                  nama,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
                 ),
-                Text(
-                  "NIS. ${siswa['nis']} • ${siswa['kelas']}",
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                ),
+                if (detail.isNotEmpty)
+                  Text(
+                    detail,
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
               ],
             ),
           ),
           Checkbox(
-            value: siswa['hadir'],
+            value: _siswaHadir.contains(siswa.id),
             activeColor: const Color(0xFF48A2E6),
             onChanged: (val) {
               setState(() {
-                siswa['hadir'] = val;
+                if (val == true) {
+                  _siswaHadir.add(siswa.id);
+                } else {
+                  _siswaHadir.remove(siswa.id);
+                }
               });
             },
           ),

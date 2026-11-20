@@ -11,8 +11,8 @@ abstract final class EpklColors {
 
   // Teks dan garis
   static const teks = Color(0xFF111827);
-  static const teksSekunder = Color(0xFF6B7280);
-  static const border = Color(0xFFE5E7EB);
+  static const teksSekunder = Color(0xFF4B5563);
+  static const border = Color(0xFFCBD5E1);
 
   // Latar tile ringkasan (cyan lembut di desain beranda)
   static const latarTile = Color(0xFFE8FAFB);

@@ -1,4 +1,6 @@
 // Simpan di: lib/data/models/profil_guru_model.dart (timpa file lama)
+import '../../core/config/api_config.dart';
+
 class ProfilGuru {
   final String nama;
   final String nip;
@@ -44,6 +46,7 @@ class ProfilGuru {
       email: json['email'] as String?,
       noHp: json['no_hp'] as String?,
       fotoUrl: json['foto_url'] as String?,
+      fotoUrl: _resolveFotoUrl(json['foto_url']),
     );
   }
 
@@ -64,4 +67,29 @@ class ProfilGuru {
       fotoUrl: fotoUrl ?? this.fotoUrl,
     );
   }
+}
+
+String? _resolveFotoUrl(dynamic value) {
+  if (value is! String || value.trim().isEmpty) return null;
+
+  final uri = Uri.tryParse(value.trim());
+  if (uri == null) return null;
+  final apiUri = Uri.tryParse(ApiConfig.baseUrl);
+  if (apiUri == null) return uri.toString();
+
+  if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+    return Uri(
+      scheme: apiUri.scheme,
+      userInfo: apiUri.userInfo,
+      host: apiUri.host,
+      port: apiUri.hasPort ? apiUri.port : null,
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+      fragment: uri.hasFragment ? uri.fragment : null,
+    ).toString();
+  }
+  if (!uri.hasAuthority && uri.path.startsWith('/')) {
+    return apiUri.replace(path: uri.path).toString();
+  }
+  return uri.toString();
 }

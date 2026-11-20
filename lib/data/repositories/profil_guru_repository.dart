@@ -1,5 +1,6 @@
 // Simpan di: lib/data/repositories/profil_guru_repository.dart (timpa file lama)
 import 'package:image_picker/image_picker.dart' show XFile;
+import 'dart:typed_data';
 
 import '../models/profil_guru_model.dart';
 
@@ -11,10 +12,13 @@ abstract class ProfilGuruRepository {
   /// [foto] opsional; kalau null, foto lama dibiarkan.
   Future<ProfilGuru> ubahProfil({
     required String nama,
-    String? email,
     String? noHp,
     XFile? foto,
+    Uint8List? fotoBytes,
+    String? fotoNama,
   });
+
+  Future<void> ajukanPerubahanEmail(String emailBaru);
 
   Future<void> gantiPassword({
     required String passwordLama,
@@ -46,13 +50,21 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   @override
   Future<ProfilGuru> ubahProfil({
     required String nama,
-    String? email,
     String? noHp,
     XFile? foto,
+    Uint8List? fotoBytes,
+    String? fotoNama,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
-    _data = _data.copyWith(nama: nama, email: email, noHp: noHp);
+    _data = _data.copyWith(nama: nama, noHp: noHp);
     return _data;
+  }
+
+  @override
+  Future<void> ajukanPerubahanEmail(String emailBaru) async {
+    throw const FormatException(
+      'Perubahan email memerlukan repository API dan verifikasi email.',
+    );
   }
 
   @override

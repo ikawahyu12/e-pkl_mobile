@@ -13,6 +13,8 @@ class GuruAuthSession {
     return accessToken.trim().isNotEmpty && role.trim().toLowerCase() == 'guru';
   }
 
+  bool get wajibGantiPassword => user['wajib_ganti_password'] == true;
+
   factory GuruAuthSession.fromJson(Map<String, dynamic> json) {
     final userData = json['user'];
     final user = userData is Map<String, dynamic>

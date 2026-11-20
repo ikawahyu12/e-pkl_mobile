@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../../data/models/dashboard_guru_model.dart';
 import '../../../data/repositories/dashboard_guru_repository.dart';
+import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../shared/utils/guru_navigasi.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
-import '../validasi_jurnal/validasi_jurnal_page.dart';
+import '../informasi_jurnal/informasi_jurnal_page.dart';
 import '../penilaian/daftar_penilaian.dart';
 import '../presensi/buat_presensi.dart';
 
@@ -17,12 +18,22 @@ import '../presensi/buat_presensi.dart';
 /// Profil berpindah tab (bukan membuka halaman baru).
 class GuruHomePage extends StatefulWidget {
   final DashboardGuruRepository? repository;
+  final AgendaRepository? agendaRepository;
 
   /// Dipanggil saat pintasan menuju sebuah tab (index mengikuti
   /// [GuruTujuan.tab]: Siswa=1, Monitoring=2, Profil=3).
   final GuruPindahTab? onPindahTab;
+  final bool tampilkanAppBar;
+  final ValueChanged<bool>? onAdaNotifikasiBaru;
 
-  const GuruHomePage({super.key, this.repository, this.onPindahTab});
+  const GuruHomePage({
+    super.key,
+    this.repository,
+    this.agendaRepository,
+    this.onPindahTab,
+    this.tampilkanAppBar = true,
+    this.onAdaNotifikasiBaru,
+  });
 
   @override
   State<GuruHomePage> createState() => _GuruHomePageState();
@@ -53,6 +64,7 @@ class _GuruHomePageState extends State<GuruHomePage> {
     try {
       final data = await _repo.ambilDashboard();
       if (!mounted) return;
+      widget.onAdaNotifikasiBaru?.call(data.adaNotifikasiBaru);
       setState(() {
         _data = data;
         _error = null;
@@ -85,11 +97,13 @@ class _GuruHomePageState extends State<GuruHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: EpklHomeAppBar(
-        adaNotifikasiBaru: _data?.adaNotifikasiBaru ?? false,
-        onNotifikasi: () => _buka(GuruTujuan.notifikasi),
-        onProfil: () => _buka(GuruTujuan.profil),
-      ),
+      appBar: widget.tampilkanAppBar
+          ? EpklHomeAppBar(
+              adaNotifikasiBaru: _data?.adaNotifikasiBaru ?? false,
+              onNotifikasi: () => _buka(GuruTujuan.notifikasi),
+              onProfil: () => _buka(GuruTujuan.profil),
+            )
+          : null,
       body: SafeArea(child: _isi()),
     );
   }
@@ -158,7 +172,7 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ValidasiJurnalPage(),
+                    builder: (context) => const InformasiJurnalPage(),
                   ),
                 );
               },
@@ -191,12 +205,12 @@ class _GuruHomePageState extends State<GuruHomePage> {
               ),
               EpklMenuCepatItem(
                 icon: Icons.description_outlined,
-                label: 'Validasi Jurnal',
+                label: 'Informasi Jurnal',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ValidasiJurnalPage(),
+                      builder: (context) => const InformasiJurnalPage(),
                     ),
                   );
                 },
@@ -216,7 +230,10 @@ class _GuruHomePageState extends State<GuruHomePage> {
                 icon: Icons.calendar_today_outlined,
                 label: 'Agenda',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const AgendaPage()),
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        AgendaPage(repository: widget.agendaRepository),
+                  ),
                 ),
               ),
             ],

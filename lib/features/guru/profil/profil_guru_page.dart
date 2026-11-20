@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'edit_profil_guru_page.dart';
 import 'ganti_password_page.dart';
 import '../../../data/models/profil_guru_model.dart';
+import '../../../data/repositories/guru_auth_repository.dart';
 import '../../../data/repositories/profil_guru_repository.dart';
 import '../../../data/repositories/profil_guru_repository_api.dart';
 
@@ -13,12 +14,18 @@ const _teksSekunder = Color(0xFF6B7280);
 const _border = Color(0xFFE5E7EB);
 
 class ProfilGuruPage extends StatefulWidget {
+  final GuruAuthRepository authRepository;
   final ProfilGuruRepository? repository;
 
   /// Dipanggil setelah logout berhasil (arahkan ke halaman login).
   final Future<void> Function()? onLogout;
 
-  const ProfilGuruPage({super.key, this.repository, this.onLogout});
+  const ProfilGuruPage({
+    super.key,
+    required this.authRepository,
+    this.repository,
+    this.onLogout,
+  });
 
   @override
   State<ProfilGuruPage> createState() => _ProfilGuruPageState();
@@ -26,7 +33,8 @@ class ProfilGuruPage extends StatefulWidget {
 
 class _ProfilGuruPageState extends State<ProfilGuruPage> {
   late final ProfilGuruRepository _repo =
-      widget.repository ?? ProfilGuruRepositoryApi();
+      widget.repository ??
+      ProfilGuruRepositoryApi(authRepository: widget.authRepository);
 
   ProfilGuru? _profil;
   bool _loading = true;
@@ -83,7 +91,9 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
   Future<void> _gantiPassword() async {
     final berhasil = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => GantiPasswordPage(repository: _repo)),
+      MaterialPageRoute(
+        builder: (_) => GantiPasswordPage(repository: widget.authRepository),
+      ),
     );
     if (berhasil == true && mounted) {
       _snack('Kata sandi berhasil diubah');
@@ -129,21 +139,6 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Profil Akun',
-          style: TextStyle(
-            color: _teks,
-            fontWeight: FontWeight.w700,
-            fontSize: 22,
-          ),
-        ),
-      ),
       body: SafeArea(child: _isi()),
     );
   }
@@ -277,6 +272,15 @@ class _KartuProfil extends StatelessWidget {
   final ProfilGuru profil;
   const _KartuProfil({required this.profil});
 
+  Widget _inisial() => Text(
+    profil.inisial,
+    style: const TextStyle(
+      color: _biru,
+      fontSize: 24,
+      fontWeight: FontWeight.w800,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -291,14 +295,23 @@ class _KartuProfil extends StatelessWidget {
       ),
       child: Row(
         children: [
-             CircleAvatar(
-     radius: 32,
-     backgroundColor: Colors.white,
-     backgroundImage: profil.fotoUrl != null ? NetworkImage(profil.fotoUrl!) : null,
-     child: profil.fotoUrl == null
-         ? Text(profil.inisial, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF2F6FED)))
-         : null,
-   ),
+          CircleAvatar(
+            radius: 36,
+            backgroundColor: Colors.white,
+            child: ClipOval(
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: profil.fotoUrl?.isNotEmpty == true
+                    ? Image.network(
+                        profil.fotoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(child: _inisial()),
+                      )
+                    : Center(child: _inisial()),
+              ),
+            ),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

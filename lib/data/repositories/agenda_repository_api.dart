@@ -1,13 +1,6 @@
-// Simpan di: lib/data/repositories/agenda_repository_api.dart
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-
-import '../../core/config/api_config.dart';
 import '../../features/guru/agenda/agenda_data.dart';
-import 'agenda_repository.dart';
+import 'guru_api_client.dart';
+import 'guru_auth_repository.dart';
 
 class AgendaException implements Exception {
   final String message;
@@ -17,132 +10,105 @@ class AgendaException implements Exception {
   String toString() => message;
 }
 
+class AgendaSiswaOption {
+  final int id;
+  final String nama;
+  final String? kelas;
+  final String? nis;
+
+  const AgendaSiswaOption({
+    required this.id,
+    required this.nama,
+    this.kelas,
+    this.nis,
+  });
+}
+
+class AgendaInstansiOption {
+  final int id;
+  final String nama;
+  final String alamat;
+  final List<AgendaSiswaOption> siswa;
+
+  const AgendaInstansiOption({
+    required this.id,
+    required this.nama,
+    required this.alamat,
+    required this.siswa,
+  });
+}
+
+abstract interface class AgendaRepository {
+  Future<List<AgendaItem>> ambilAgenda({
+    required DateTime dari,
+    required DateTime sampai,
+  });
+
+  Future>> ambilRentang(
+    DateTime dari,
+    DateTime sampai,
+  );
+
+  Future<List<AgendaInstansiOption>> ambilOpsi([DateTime? tanggal]);
+
+  Future<AgendaItem> tambah({
+    required int instansiId,
+    required List<int> siswaIds,
+    required DateTime tanggal,
+    required String jamMulai,
+    required String jamSelesai,
+    String? catatan,
+  });
+
+  Future<AgendaItem> ubahStatus({
+    required int id,
+    required StatusAgenda status,
+    String? alasanPembatalan,
+  });
+
+  Future<void> hapus(int id);
+}
+
 class AgendaRepositoryApi implements AgendaRepository {
-  // Harus sama dengan _tokenKey di GuruAuthRepositoryApi.
-  static const String _tokenKey = 'guru_access_token';
-  static const Duration _requestTimeout = Duration(seconds: 15);
+  final GuruApiClient _api;
 
-  final http.Client _client;
-  final FlutterSecureStorage _storage;
+  AgendaRepositoryApi({
+    required GuruAuthRepository authRepository,
+    GuruApiClient? api,
+  }) : _api = api ?? GuruApiClient(authRepository: authRepository);
 
-  AgendaRepositoryApi({http.Client? client, FlutterSecureStorage? storage})
-    : _client = client ?? http.Client(),
-      _storage = storage ?? const FlutterSecureStorage();
-
-  Uri _url(String path, [Map<String, String>? query]) {
-    final baseUrl = ApiConfig.baseUrl.replaceFirst(RegExp(r'/+$'), '');
-    final uri = Uri.parse('$baseUrl/$path');
-    return query == null ? uri : uri.replace(queryParameters: query);
-  }
-
-  Future<String> _bacaToken() async {
-    String? token;
-    try {
-      token = await _storage.read(key: _tokenKey);
-    } catch (_) {
-      throw const AgendaException('Sesi aman tidak dapat dibaca dari perangkat.');
-    }
-    if (token == null || token.trim().isEmpty) {
-      throw const AgendaException('Sesi tidak ditemukan. Silakan login ulang.');
-    }
-    return token;
-  }
-
-  Map<String, dynamic> _decode(http.Response response) {
-    try {
-      final decoded = jsonDecode(response.body);
-      if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      throw const AgendaException('Format respons server tidak valid.');
-    } on FormatException {
-      throw const AgendaException('Respons server tidak dapat dibaca.');
-    }
-  }
-
-  /// Utamakan pesan validasi field (422), lalu pesan umum.
-  String _pesanError(Map<String, dynamic> data, String pesanDefault) {
-    final errors = data['errors'];
-    if (errors is Map && errors.isNotEmpty) {
-      final first = errors.values.first;
-      if (first is List && first.isNotEmpty) return first.first.toString();
-    }
-    final message = data['message']?.toString().trim();
-    return message == null || message.isEmpty ? pesanDefault : message;
-  }
-
-  /// Satu pintu untuk semua request: token, timeout, dan pemetaan error.
-  Future<Map<String, dynamic>> _panggil(
-    String method,
-    String path, {
-    Map<String, dynamic>? body,
-    Map<String, String>? query,
-    required String pesanGagal,
+  @override
+  Future<List<AgendaItem>> ambilAgenda({
+    required DateTime dari,
+    required DateTime sampai,
   }) async {
-    final token = await _bacaToken();
-    try {
-      final request = http.Request(method, _url(path, query))
-        ..headers.addAll({
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-          if (body != null) 'Content-Type': 'application/json',
-        });
-      if (body != null) request.body = jsonEncode(body);
-
-      final streamed = await _client.send(request).timeout(_requestTimeout);
-      final response = await http.Response.fromStream(streamed);
-
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw const AgendaException('Sesi berakhir. Silakan login ulang.');
-      }
-      final data = _decode(response);
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          data['success'] != true) {
-        throw AgendaException(_pesanError(data, pesanGagal));
-      }
-      return data;
-    } on AgendaException {
-      rethrow;
-    } on TimeoutException {
-      throw const AgendaException(
-        'Permintaan terlalu lama. Periksa koneksi server.',
-      );
-    } on http.ClientException {
-      throw const AgendaException(
-        'Tidak dapat terhubung ke server. Periksa koneksi API.',
-      );
-    } catch (_) {
-      throw AgendaException(pesanGagal);
-    }
-  }
-
-  AgendaItem _bacaItem(Map<String, dynamic> data) {
-    final payload = data['data'];
-    if (payload is! Map) {
-      throw const AgendaException('Format data agenda tidak valid.');
-    }
-    return AgendaItem.fromJson(Map<String, dynamic>.from(payload));
+    final response = await _api.send(
+      method: 'GET',
+      path: 'guru/agenda',
+      queryParameters: {
+        'dari': kunciTanggal(dari),
+        'sampai': kunciTanggal(sampai),
+      },
+    );
+    return _list(response['data']).map(AgendaItem.fromJson).toList();
   }
 
   @override
-  Future<Map<String, List<AgendaItem>>> ambilRentang(
+  Future>> ambilRentang(
     DateTime dari,
     DateTime sampai,
   ) async {
-    final data = await _panggil(
-      'GET',
-      'guru/agenda',
-      query: {'dari': kunciTanggal(dari), 'sampai': kunciTanggal(sampai)},
-      pesanGagal: 'Agenda tidak dapat dimuat.',
+    final response = await _api.send(
+      method: 'GET',
+      path: 'guru/agenda',
+      queryParameters: {
+        'dari': kunciTanggal(dari),
+        'sampai': kunciTanggal(sampai),
+      },
     );
 
-    final daftar = data['data'];
-    if (daftar is! List) {
-      throw const AgendaException('Format data agenda tidak valid.');
-    }
-
     final hasil = <String, List<AgendaItem>>{};
-    for (final row in daftar.whereType<Map>()) {
-      final json = Map<String, dynamic>.from(row);
+    for (final json in _list(response['data'])) {
       final kunci = json['tanggal']?.toString();
       if (kunci == null) continue;
       hasil.putIfAbsent(kunci, () => []).add(AgendaItem.fromJson(json));
@@ -151,20 +117,31 @@ class AgendaRepositoryApi implements AgendaRepository {
   }
 
   @override
-  Future<List<TempatOpsi>> ambilOpsi() async {
-    final data = await _panggil(
-      'GET',
-      'guru/agenda/opsi',
-      pesanGagal: 'Daftar tempat PKL tidak dapat dimuat.',
+  Future<List<AgendaInstansiOption>> ambilOpsi([DateTime? tanggal]) async {
+    final response = await _api.send(
+      method: 'GET',
+      path: 'guru/agenda/opsi',
+      queryParameters: {
+        if (tanggal != null) 'tanggal': kunciTanggal(tanggal),
+      },
     );
-    final daftar = data['data'];
-    if (daftar is! List) {
-      throw const AgendaException('Format daftar tempat PKL tidak valid.');
-    }
-    return daftar
-        .whereType<Map>()
-        .map((t) => TempatOpsi.fromJson(Map<String, dynamic>.from(t)))
-        .toList();
+    return _list(response['data']).map((item) {
+      final students = _list(item['siswa'] ?? const []).map((student) {
+        return AgendaSiswaOption(
+          id: (student['id'] as num).toInt(),
+          nama: student['nama']?.toString() ?? '',
+          kelas: student['kelas']?.toString(),
+          nis: student['nis']?.toString(),
+        );
+      }).toList();
+
+      return AgendaInstansiOption(
+        id: ((item['instansi_id'] ?? item['id']) as num).toInt(),
+        nama: item['nama']?.toString() ?? '',
+        alamat: item['alamat']?.toString() ?? '',
+        siswa: students,
+      );
+    }).toList();
   }
 
   @override
@@ -176,9 +153,9 @@ class AgendaRepositoryApi implements AgendaRepository {
     required String jamSelesai,
     String? catatan,
   }) async {
-    final data = await _panggil(
-      'POST',
-      'guru/agenda',
+    final response = await _api.send(
+      method: 'POST',
+      path: 'guru/agenda',
       body: {
         'instansi_id': instansiId,
         'siswa_ids': siswaIds,
@@ -187,28 +164,50 @@ class AgendaRepositoryApi implements AgendaRepository {
         'jam_selesai': jamSelesai,
         'catatan': catatan,
       },
-      pesanGagal: 'Jadwal gagal disimpan.',
     );
-    return _bacaItem(data);
+    return AgendaItem.fromJson(_map(response['data']));
   }
 
   @override
-  Future<AgendaItem> ubahStatus(int id, StatusAgenda status) async {
-    final data = await _panggil(
-      'PATCH',
-      'guru/agenda/$id/status',
-      body: {'status': status == StatusAgenda.selesai ? 'selesai' : 'terjadwal'},
-      pesanGagal: 'Status agenda gagal diperbarui.',
+  Future<AgendaItem> ubahStatus({
+    required int id,
+    required StatusAgenda status,
+    String? alasanPembatalan,
+  }) async {
+    final statusApi = switch (status) {
+      StatusAgenda.selesai => 'selesai',
+      StatusAgenda.dibatalkan => 'dibatalkan',
+      StatusAgenda.terjadwal => 'terjadwal',
+    };
+    final response = await _api.send(
+      method: 'PATCH',
+      path: 'guru/agenda/$id/status',
+      body: {
+        'status': statusApi,
+        if (alasanPembatalan != null)
+          'alasan_pembatalan': alasanPembatalan.trim(),
+      },
     );
-    return _bacaItem(data);
+    return AgendaItem.fromJson(_map(response['data']));
   }
 
   @override
   Future<void> hapus(int id) async {
-    await _panggil(
-      'DELETE',
-      'guru/agenda/$id',
-      pesanGagal: 'Jadwal gagal dihapus.',
+    await _api.send(
+      method: 'DELETE',
+      path: 'guru/agenda/$id',
     );
+  }
+
+  List> _list(dynamic value) {
+    if (value is! List) {
+      throw const FormatException('Daftar agenda dari server tidak valid.');
+    }
+    return value.whereType().map(_map).toList();
+  }
+
+  Map<String, dynamic> _map(dynamic value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    throw const FormatException('Data agenda dari server tidak valid.');
   }
 }

@@ -4,6 +4,7 @@ import '../../../data/models/notifikasi_model.dart';
 import '../../../data/repositories/notifikasi_repository.dart';
 import '../../../data/repositories/penilaian_repository.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 import '../common/guru_ui.dart';
 import '../penilaian/hasil_penilaian_page.dart';
 import '../siswa_bimbingan/detail_siswa_page.dart';
@@ -12,7 +13,7 @@ import '../siswa_bimbingan/detail_siswa_page.dart';
 ///
 /// Navigasi saat notifikasi diketuk:
 /// - penilaian  -> HasilPenilaianPage siswa terkait
-/// - jurnal     -> [onBukaValidasiJurnal] bila diisi, jika tidak DetailSiswaPage
+/// - jurnal     -> [onBukaInformasiJurnal] bila diisi, jika tidak DetailSiswaPage
 /// - kehadiran  -> [onBukaMonitoring] bila diisi, jika tidak DetailSiswaPage
 ///                 (atau pesan "belum tersedia" bila tak ada siswa terkait)
 /// - informasi  -> bottom sheet isi lengkap
@@ -21,8 +22,8 @@ class NotifikasiGuruPage extends StatefulWidget {
   final SiswaBimbinganRepository? siswaRepository;
   final PenilaianRepository? penilaianRepository;
 
-  /// Sambungkan ke halaman validasi jurnal / monitoring milik anggota lain.
-  final void Function(Notifikasi notifikasi)? onBukaValidasiJurnal;
+  /// Sambungkan ke halaman informasi jurnal atau monitoring.
+  final void Function(Notifikasi notifikasi)? onBukaInformasiJurnal;
   final void Function(Notifikasi notifikasi)? onBukaMonitoring;
 
   const NotifikasiGuruPage({
@@ -30,7 +31,7 @@ class NotifikasiGuruPage extends StatefulWidget {
     this.repository,
     this.siswaRepository,
     this.penilaianRepository,
-    this.onBukaValidasiJurnal,
+    this.onBukaInformasiJurnal,
     this.onBukaMonitoring,
   });
 
@@ -116,8 +117,8 @@ class _NotifikasiGuruPageState extends State<NotifikasiGuruPage> {
           );
         }
       case TipeNotifikasi.jurnal:
-        if (widget.onBukaValidasiJurnal != null) {
-          widget.onBukaValidasiJurnal!(n);
+        if (widget.onBukaInformasiJurnal != null) {
+          widget.onBukaInformasiJurnal!(n);
         } else {
           _bukaDetailAtauPesan(n);
         }
@@ -193,72 +194,17 @@ class _NotifikasiGuruPageState extends State<NotifikasiGuruPage> {
     final adaBaru = _data.any((n) => !n.dibaca);
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: ResponsiveCenter(
-          child: Column(
-            children: [
-              _header(adaBaru),
-              const Divider(height: 1, color: kBorder),
-              Expanded(child: _isi()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _header(bool adaBaru) {
-    final pad = hPadding(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(pad, 12, pad - 6, 12),
-      child: Row(
-        children: [
-          if (Navigator.canPop(context)) ...[
-            Material(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: kBorder),
-              ),
-              child: InkWell(
-                customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                onTap: () => Navigator.maybePop(context),
-                child: const SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Icon(
-                    Icons.chevron_left_rounded,
-                    size: 26,
-                    color: kTeks,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-          ],
-          const Expanded(
-            child: Text(
-              'Notifikasi',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: kTeks,
-              ),
-            ),
-          ),
-          TextButton(
+      appBar: EpklGradientAppBar(
+        judul: 'Notifikasi',
+        actions: [
+          IconButton(
+            tooltip: 'Tandai semua dibaca',
             onPressed: adaBaru ? _tandaiSemua : null,
-            child: const Text(
-              'Tandai dibaca',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
+            icon: const Icon(Icons.done_all_rounded),
           ),
         ],
       ),
+      body: SafeArea(child: ResponsiveCenter(child: _isi())),
     );
   }
 

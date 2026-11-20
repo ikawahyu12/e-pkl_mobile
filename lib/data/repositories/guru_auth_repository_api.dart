@@ -39,6 +39,17 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
     return message == null || message.isEmpty ? pesanDefault : message;
   }
 
+  @override
+  Future<String?> bacaAccessToken() async {
+    try {
+      return await _storage.read(key: _tokenKey);
+    } catch (_) {
+      throw const GuruAuthException(
+        'Token sesi tidak dapat dibaca dari perangkat.',
+      );
+    }
+  }
+
   Map<String, String> _headers({String? token}) => {
     'Accept': 'application/json',
     if (token != null) 'Authorization': 'Bearer $token',
@@ -107,6 +118,161 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
   }
 
   @override
+  Future<void> daftarGuru({
+    required String nip,
+    required String namaLengkap,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/register'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'nip': nip.trim(),
+              'nama_lengkap': namaLengkap.trim(),
+              'email': email.trim(),
+              'password': password,
+              'password_confirmation': passwordConfirmation,
+            }),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Registrasi Guru tidak dapat diproses.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan registrasi terlalu lama. Periksa koneksi API.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server API.');
+    } catch (_) {
+      throw const GuruAuthException('Registrasi Guru tidak dapat diproses.');
+    }
+  }
+
+  @override
+  Future<void> kirimUlangVerifikasiGuru({required String email}) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/resend-verification'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email.trim()}),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Tautan verifikasi tidak dapat dikirim ulang.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan terlalu lama. Periksa koneksi API.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server API.');
+    } catch (_) {
+      throw const GuruAuthException(
+        'Tautan verifikasi tidak dapat dikirim ulang.',
+      );
+    }
+  }
+
+  @override
+  Future<void> mintaResetPassword({required String email}) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/forgot-password'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode != 202 || data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(
+            data,
+            'Permintaan reset kata sandi tidak dapat diproses.',
+          ),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan terlalu lama. Periksa koneksi server.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server.');
+    } catch (_) {
+      throw const GuruAuthException(
+        'Permintaan reset kata sandi tidak dapat diproses.',
+      );
+    }
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String passwordBaru,
+    required String passwordBaruConfirmation,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/reset-password'),
+            headers: {..._headers(), 'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'token': token,
+              'password_baru': passwordBaru,
+              'password_baru_confirmation': passwordBaruConfirmation,
+            }),
+          )
+          .timeout(_requestTimeout);
+      final data = _decodeResponse(response);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Tautan reset tidak valid atau telah kedaluwarsa.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan terlalu lama. Periksa koneksi server.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server.');
+    } catch (_) {
+      throw const GuruAuthException('Reset kata sandi tidak dapat diproses.');
+    }
+  }
+
+  @override
   Future<GuruAuthSession?> pulihkanSesi() async {
     String? token;
     try {
@@ -166,6 +332,66 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
       );
     } catch (_) {
       throw const GuruAuthException('Sesi Guru tidak dapat diverifikasi.');
+    }
+  }
+
+  @override
+  Future<void> gantiPassword({
+    required String passwordLama,
+    required String passwordBaru,
+    required String passwordBaruConfirmation,
+  }) async {
+    String? token;
+
+    try {
+      token = await _storage.read(key: _tokenKey);
+    } catch (_) {
+      throw const GuruAuthException(
+        'Token sesi tidak dapat dibaca dari perangkat.',
+      );
+    }
+
+    if (token == null || token.trim().isEmpty) {
+      throw const GuruAuthException(
+        'Sesi Guru tidak ditemukan. Silakan login kembali.',
+      );
+    }
+
+    try {
+      final response = await _client
+          .post(
+            _url('guru/auth/password'),
+            headers: {
+              ..._headers(token: token),
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'password_lama': passwordLama,
+              'password_baru': passwordBaru,
+              'password_baru_confirmation': passwordBaruConfirmation,
+            }),
+          )
+          .timeout(_requestTimeout);
+
+      final data = _decodeResponse(response);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw GuruAuthException(
+          _pesanError(data, 'Gagal mengubah kata sandi Guru.'),
+        );
+      }
+    } on GuruAuthException {
+      rethrow;
+    } on TimeoutException {
+      throw const GuruAuthException(
+        'Permintaan terlalu lama. Periksa koneksi server.',
+      );
+    } on http.ClientException {
+      throw const GuruAuthException('Tidak dapat terhubung ke server.');
+    } catch (_) {
+      throw const GuruAuthException('Ganti kata sandi tidak dapat diproses.');
     }
   }
 

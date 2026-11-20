@@ -1,23 +1,19 @@
-// Simpan di: lib/features/guru/agenda/tambah_agenda_page.dart (timpa file lama)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../data/repositories/agenda_repository.dart';
 import '../../../data/repositories/agenda_repository_api.dart';
+import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 import 'agenda_data.dart';
 
-/// Hasil yang dikembalikan saat jadwal disimpan (lewat Navigator.pop).
+/// Hasil yang dikembalikan saat jadwal disimpan (jika dibutuhkan pemanggil lama).
 class HasilTambahAgenda {
   final DateTime tanggal;
   final AgendaItem item;
   const HasilTambahAgenda(this.tanggal, this.item);
 }
 
-// ============================================================
-// HALAMAN TAMBAH AGENDA
-// ============================================================
 class TambahAgendaPage extends StatefulWidget {
-  /// Tanggal awal yang terisi di form (biasanya tanggal yang sedang dipilih).
   final DateTime tanggalAwal;
 
   /// Kalau null, memakai AgendaRepositoryApi.
@@ -38,24 +34,24 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   static const _gelap = Color(0xFF0F172A);
   static const _abu = Color(0xFF64748B);
 
-  late final AgendaRepository _repo;
+  late final AgendaRepository _repo =
+      widget.repository ??
+      AgendaRepositoryApi(authRepository: GuruAuthRepositoryApi());
 
-  List<TempatOpsi> _opsi = const [];
-  bool _memuat = true;
-  String? _error;
-
-  TempatOpsi? _tempat;
-  Set<int> _siswaDipilih = {};
+  List<AgendaInstansiOption> _tempatTersedia = [];
+  AgendaInstansiOption? _tempat;
+  final Set<int> _siswaDipilih = {};
   late DateTime _tanggal = widget.tanggalAwal;
   TimeOfDay _mulai = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _selesai = const TimeOfDay(hour: 10, minute: 0);
   final _catatan = TextEditingController();
+  bool _memuatOpsi = true;
   bool _menyimpan = false;
+  String? _errorOpsi;
 
   @override
   void initState() {
     super.initState();
-    _repo = widget.repository ?? AgendaRepositoryApi();
     _muatOpsi();
   }
 
@@ -65,35 +61,10 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
     super.dispose();
   }
 
-  Future<void> _muatOpsi() async {
-    setState(() {
-      _memuat = true;
-      _error = null;
-    });
-    try {
-      final opsi = await _repo.ambilOpsi();
-      if (!mounted) return;
-      setState(() {
-        _opsi = opsi;
-        _memuat = false;
-        if (opsi.isNotEmpty) _pilihTempat(opsi.first);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _memuat = false;
-        _error = _pesan(e);
-      });
-    }
-  }
-
   String _pesan(Object e) => e.toString().replaceFirst('Exception: ', '');
 
+  /// Format 24 jam untuk tampilan dan pengiriman ke server: "09:00".
   String _fmtJam(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}.${t.minute.toString().padLeft(2, '0')}';
-
-  /// Format 24 jam untuk dikirim ke server: "09:00".
-  String _jam24(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   int _menit(TimeOfDay t) => t.hour * 60 + t.minute;
@@ -104,15 +75,40 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       ..showSnackBar(SnackBar(content: Text(pesan)));
   }
 
-  /// Pilih tempat dan otomatis centang semua siswanya.
-  void _pilihTempat(TempatOpsi t) {
-    _tempat = t;
-    _siswaDipilih = t.siswa.map((s) => s.id).toSet();
+  Future<void> _muatOpsi() async {
+    setState(() {
+      _memuatOpsi = true;
+      _errorOpsi = null;
+      _tempatTersedia = [];
+      _tempat = null;
+      _siswaDipilih.clear();
+    });
+    try {
+      final options = await _repo.ambilOpsi(_tanggal);
+      if (!mounted) return;
+      setState(() {
+        _tempatTersedia = options;
+        if (options.isNotEmpty) {
+          _tempat = options.first;
+          _siswaDipilih.addAll(options.first.siswa.map((siswa) => siswa.id));
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _errorOpsi = _pesan(error));
+    } finally {
+      if (mounted) setState(() => _memuatOpsi = false);
+    }
   }
 
-  void _gantiTempat(TempatOpsi? baru) {
+  void _gantiTempat(AgendaInstansiOption? baru) {
     if (baru == null) return;
-    setState(() => _pilihTempat(baru));
+    setState(() {
+      _tempat = baru;
+      _siswaDipilih
+        ..clear()
+        ..addAll(baru.siswa.map((siswa) => siswa.id));
+    });
   }
 
   void _toggleSiswa(int id) {
@@ -128,7 +124,10 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (hasil != null) setState(() => _tanggal = hasil);
+    if (hasil != null) {
+      setState(() => _tanggal = hasil);
+      await _muatOpsi();
+    }
   }
 
   Future<void> _pilihJam({required bool mulai}) async {
@@ -141,9 +140,13 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   }
 
   Future<void> _simpan() async {
-    final tempat = _tempat;
-    if (tempat == null) {
-      _snack('Pilih tempat PKL terlebih dahulu.');
+    if (_menyimpan) return;
+    if (_memuatOpsi) {
+      _snack('Tunggu sampai daftar penempatan selesai dimuat.');
+      return;
+    }
+    if (_tempat == null) {
+      _snack('Tidak ada penempatan aktif untuk agenda pada tanggal ini.');
       return;
     }
     if (_siswaDipilih.isEmpty) {
@@ -159,19 +162,18 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
     try {
       final catatan = _catatan.text.trim();
       final item = await _repo.tambah(
-        instansiId: tempat.instansiId,
+        instansiId: _tempat!.id,
         siswaIds: _siswaDipilih.toList(),
         tanggal: _tanggal,
-        jamMulai: _jam24(_mulai),
-        jamSelesai: _jam24(_selesai),
+        jamMulai: _fmtJam(_mulai),
+        jamSelesai: _fmtJam(_selesai),
         catatan: catatan.isEmpty ? null : catatan,
       );
-      if (!mounted) return;
-      Navigator.pop(context, HasilTambahAgenda(_tanggal, item));
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _menyimpan = false);
-      _snack(_pesan(e));
+      if (mounted) Navigator.pop(context, item);
+    } catch (error) {
+      if (mounted) _snack(_pesan(error));
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
     }
   }
 
@@ -182,66 +184,28 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F9FF),
-      appBar: AppBar(
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 0,
-        title: const Text(
-          'Tambah Agenda',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
+      appBar: const EpklGradientAppBar(judul: 'Tambah Agenda'),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          _buildBanner(),
+          const SizedBox(height: 14),
+          _buildKartuTujuan(),
+          const SizedBox(height: 14),
+          _buildKartuWaktu(),
+          const SizedBox(height: 14),
+          _buildKartuCatatan(),
+          const SizedBox(height: 18),
+          _buildTombolSimpan(),
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              'Jadwal akan disimpan sebagai Agenda Kunjungan.',
+              style: TextStyle(fontSize: 11, color: _abu),
             ),
           ),
-        ),
+        ],
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_memuat) return const Center(child: CircularProgressIndicator());
-
-    if (_error != null) {
-      return _PesanTengah(
-        pesan: _error!,
-        aksi: FilledButton(onPressed: _muatOpsi, child: const Text('Coba lagi')),
-      );
-    }
-
-    if (_opsi.isEmpty) {
-      return const _PesanTengah(
-        pesan: 'Belum ada tempat PKL dengan siswa bimbingan Anda.\n'
-            'Agenda kunjungan bisa dibuat setelah siswa ditempatkan.',
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        _buildBanner(),
-        const SizedBox(height: 14),
-        _buildKartuTujuan(),
-        const SizedBox(height: 14),
-        _buildKartuWaktu(),
-        const SizedBox(height: 14),
-        _buildKartuCatatan(),
-        const SizedBox(height: 18),
-        _buildTombolSimpan(),
-        const SizedBox(height: 8),
-        const Center(
-          child: Text(
-            'Jadwal akan ditambahkan ke Agenda Monitoring.',
-            style: TextStyle(fontSize: 11, color: _abu),
-          ),
-        ),
-      ],
     );
   }
 
@@ -285,59 +249,81 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
 
   // ---------- Kartu 1: tujuan kunjungan ----------
   Widget _buildKartuTujuan() {
-    final tempat = _tempat!;
     return _Kartu(
       judul: 'Tujuan kunjungan',
       children: [
         const _Label('Tempat PKL', wajib: true),
         const SizedBox(height: 6),
-        _Kotak(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<TempatOpsi>(
-              value: tempat,
-              isExpanded: true,
-              itemHeight: 64,
-              icon: const Icon(Icons.keyboard_arrow_down, color: _gelap),
-              onChanged: _menyimpan ? null : _gantiTempat,
-              items: _opsi
-                  .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Row(
-                        children: [
-                          const _IkonKotak(Icons.apartment),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t.nama,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: _gelap,
+        if (_memuatOpsi)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_errorOpsi != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_errorOpsi!, style: const TextStyle(color: Colors.red)),
+              TextButton(onPressed: _muatOpsi, child: const Text('Coba lagi')),
+            ],
+          )
+        else if (_tempatTersedia.isEmpty)
+          const Text(
+            'Tidak ada penempatan aktif atau belum mulai pada tanggal ini.',
+            style: TextStyle(fontSize: 12, color: _abu),
+          )
+        else
+          _Kotak(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<AgendaInstansiOption>(
+                value: _tempat,
+                isExpanded: true,
+                itemHeight: 64,
+                icon: const Icon(Icons.keyboard_arrow_down, color: _gelap),
+                onChanged: _menyimpan ? null : _gantiTempat,
+                items: _tempatTersedia
+                    .map(
+                      (place) => DropdownMenuItem(
+                        value: place,
+                        child: Row(
+                          children: [
+                            const _IkonKotak(Icons.apartment),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    place.nama,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _gelap,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  t.alamat,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 10, color: _abu),
-                                ),
-                              ],
+                                  Text(
+                                    place.alamat,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: _abu,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -359,12 +345,12 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           style: TextStyle(fontSize: 11, color: _abu),
         ),
         const SizedBox(height: 8),
-        ...tempat.siswa.map(_buildBarisSiswa),
+        if (_tempat != null) ..._tempat!.siswa.map(_buildBarisSiswa),
       ],
     );
   }
 
-  Widget _buildBarisSiswa(SiswaOpsi s) {
+  Widget _buildBarisSiswa(AgendaSiswaOption s) {
     final inisial = s.nama
         .split(' ')
         .where((k) => k.isNotEmpty)
@@ -410,7 +396,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
                     ),
                   ),
                   Text(
-                    s.kelas,
+                    s.kelas ?? '-',
                     style: const TextStyle(fontSize: 11, color: _abu),
                   ),
                 ],
@@ -441,8 +427,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           onTap: _menyimpan ? null : _pilihTanggal,
           child: Row(
             children: [
-              const Icon(Icons.calendar_month_outlined,
-                  size: 20, color: _biru),
+              const Icon(Icons.calendar_month_outlined, size: 20, color: _biru),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -532,7 +517,8 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
           maxLength: 300,
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
-            hintText: 'Tambahkan tujuan atau hal yang perlu disiapkan saat '
+            hintText:
+                'Tambahkan tujuan atau hal yang perlu disiapkan saat '
                 'kunjungan...',
             hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
             filled: true,
@@ -555,42 +541,41 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   Widget _buildTombolSimpan() {
     return GestureDetector(
       onTap: _menyimpan ? null : _simpan,
-      child: Opacity(
-        opacity: _menyimpan ? 0.7 : 1,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
-            ),
-          ),
-          child: _menyimpan
-              ? const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: Colors.white,
-                    ),
-                  ),
-                )
-              : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.save_outlined, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Simpan Jadwal',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: _menyimpan ? const Color(0xFF94A3B8) : null,
+          gradient: _menyimpan
+              ? null
+              : const LinearGradient(
+                  colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
                 ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_menyimpan)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            else
+              const Icon(Icons.save_outlined, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              _menyimpan ? 'Menyimpan...' : 'Simpan Jadwal',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -600,29 +585,6 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
 // ============================================================
 // KOMPONEN KECIL (khusus halaman ini)
 // ============================================================
-class _PesanTengah extends StatelessWidget {
-  final String pesan;
-  final Widget? aksi;
-
-  const _PesanTengah({required this.pesan, this.aksi});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(pesan, textAlign: TextAlign.center),
-            if (aksi != null) ...[const SizedBox(height: 12), aksi!],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _Kartu extends StatelessWidget {
   final String? judul;
   final List<Widget> children;
