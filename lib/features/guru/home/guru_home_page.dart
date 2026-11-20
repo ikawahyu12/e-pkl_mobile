@@ -273,7 +273,7 @@ class _KartuSapaan extends StatelessWidget {
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: EpklColors.gradienUtama,
@@ -281,30 +281,87 @@ class _KartuSapaan extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -8,
-            bottom: -12,
-            child: Icon(
-              Icons.account_balance,
-              size: 96,
-              color: Colors.white.withValues(alpha: 0.22),
+            right: 28,
+            top: -54,
+            child: Container(
+              width: 116,
+              height: 116,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned(
+            right: -36,
+            bottom: -54,
+            child: Container(
+              width: 112,
+              height: 112,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.07),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Row(
             children: [
-              Text(
-                'Halo,\nGuru Pembimbing',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color(0x26FFFFFF),
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                        border: Border.fromBorderSide(
+                          BorderSide(color: Color(0x40FFFFFF)),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          'PENDAMPING PKL',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Halo,\nGuru Pembimbing',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Tetap semangat membimbing!',
+                      style: TextStyle(
+                        color: Color(0xEFFFFFFF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 6),
-              Text(
-                'Tetap semangat membimbing!',
-                style: TextStyle(color: Colors.white, fontSize: 12),
+              const SizedBox(width: 4),
+              const SizedBox(
+                width: 78,
+                height: 88,
+                child: CustomPaint(painter: _SiluetGuruPainter()),
               ),
             ],
           ),
@@ -312,4 +369,92 @@ class _KartuSapaan extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SiluetGuruPainter extends CustomPainter {
+  const _SiluetGuruPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 78, size.height / 88);
+
+    final aksen = Paint()..color = Colors.white.withValues(alpha: 0.12);
+    canvas.drawCircle(const Offset(49, 45), 36, aksen);
+    canvas.drawCircle(
+      const Offset(68, 15),
+      4,
+      Paint()..color = Colors.white.withValues(alpha: 0.42),
+    );
+
+    final papan = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(43, 20, 29, 34),
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(
+      papan,
+      Paint()..color = Colors.white.withValues(alpha: 0.16),
+    );
+    canvas.drawRRect(
+      papan,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.48)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+    canvas.drawLine(
+      const Offset(49, 30),
+      const Offset(64, 30),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.65)
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      const Offset(49, 36),
+      const Offset(60, 36),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final siluet = Paint()..color = const Color(0xFFF4FAFF);
+    canvas.drawCircle(const Offset(27, 25), 9, siluet);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(23, 32, 8, 10),
+        const Radius.circular(3),
+      ),
+      siluet,
+    );
+
+    final badan = Path()
+      ..moveTo(18, 42)
+      ..quadraticBezierTo(26, 37, 34, 42)
+      ..lineTo(39, 49)
+      ..lineTo(34, 55)
+      ..lineTo(32, 51)
+      ..lineTo(33, 82)
+      ..lineTo(14, 82)
+      ..lineTo(16, 54)
+      ..lineTo(11, 51)
+      ..close();
+    canvas.drawPath(badan, siluet);
+
+    final lenganMenunjuk = Path()
+      ..moveTo(31, 45)
+      ..lineTo(39, 39)
+      ..lineTo(47, 27)
+      ..quadraticBezierTo(49, 24, 52, 27)
+      ..lineTo(45, 45)
+      ..lineTo(36, 54)
+      ..close();
+    canvas.drawPath(lenganMenunjuk, siluet);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _SiluetGuruPainter oldDelegate) => false;
 }

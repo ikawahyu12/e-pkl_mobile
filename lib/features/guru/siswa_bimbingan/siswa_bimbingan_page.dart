@@ -3,17 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../shared/widgets/epkl_colors.dart';
 import '../common/guru_ui.dart';
 import 'detail_siswa_page.dart';
-
-enum _Urutan {
-  terbaru('Terbaru'),
-  namaAz('Nama A–Z'),
-  kelas('Kelas');
-
-  final String label;
-  const _Urutan(this.label);
-}
 
 class SiswaBimbinganPage extends StatefulWidget {
   final SiswaBimbinganRepository? repository;
@@ -40,7 +32,6 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
   List<SiswaBimbingan> _semua = [];
   bool _loading = true;
   String? _error;
-  _Urutan _urutan = _Urutan.terbaru;
   StatusKehadiran? _filterStatus;
 
   @override
@@ -89,21 +80,6 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
           s.instansi.toLowerCase().contains(q);
     }).toList();
 
-    switch (_urutan) {
-      case _Urutan.terbaru:
-        break; // urutan asli dari repository
-      case _Urutan.namaAz:
-        hasil.sort(
-          (a, b) => a.nama.toLowerCase().compareTo(b.nama.toLowerCase()),
-        );
-      case _Urutan.kelas:
-        hasil.sort((a, b) {
-          final c = a.kelas.compareTo(b.kelas);
-          return c != 0
-              ? c
-              : a.nama.toLowerCase().compareTo(b.nama.toLowerCase());
-        });
-    }
     return hasil;
   }
 
@@ -220,7 +196,7 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
                 )
               else if (lebar)
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(pad, 4, pad, 24),
+                  padding: EdgeInsets.fromLTRB(pad, 16, pad, 24),
                   sliver: SliverGrid(
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 440,
@@ -243,7 +219,7 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
                 )
               else
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(pad, 4, pad, 24),
+                  padding: EdgeInsets.fromLTRB(pad, 16, pad, 24),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (ctx, i) => Padding(
@@ -267,43 +243,80 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
   Widget _header(double pad, int jumlah) {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad, 20, pad, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Siswa Bimbingan',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: kTeks,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: EpklColors.gradienUtama,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1677FF).withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 7),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _kolomCari()),
-              const SizedBox(width: 12),
-              _tombolFilter(),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Total $jumlah siswa',
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: kTeksSekunder,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF1677FF),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0F4FA8).withValues(alpha: 0.14),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '$jumlah siswa',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF16427A),
+                    ),
                   ),
                 ),
-              ),
-              _menuUrutan(),
-            ],
-          ),
-          const SizedBox(height: 14),
-        ],
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Siswa Bimbingan',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _kolomCari()),
+                const SizedBox(width: 10),
+                _tombolFilter(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,7 +328,7 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: 'Cari nama siswa, kelas, atau instansi...',
-        hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+        hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
         prefixIcon: const Icon(Icons.search_rounded, color: kTeksSekunder),
         suffixIcon: _cari.text.isEmpty
             ? null
@@ -327,11 +340,19 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
                 },
               ),
         filled: true,
-        fillColor: kLatarField,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Color(0xFFDCE6F2)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFDCE6F2)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: kBiru, width: 1.4),
         ),
       ),
     );
@@ -339,7 +360,7 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
 
   Widget _tombolFilter() {
     return Material(
-      color: kLatarField,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -347,61 +368,31 @@ class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
         child: SizedBox(
           width: 52,
           height: 52,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Icon(Icons.tune_rounded, color: kTeks),
-              if (_filterStatus != null)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: kBiru,
-                      shape: BoxShape.circle,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFDCE6F2)),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.tune_rounded, color: kBiru),
+                if (_filterStatus != null)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: kBiru,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _menuUrutan() {
-    return PopupMenuButton<_Urutan>(
-      initialValue: _urutan,
-      onSelected: (u) => setState(() => _urutan = u),
-      itemBuilder: (_) => _Urutan.values
-          .map((u) => PopupMenuItem<_Urutan>(value: u, child: Text(u.label)))
-          .toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: kBorder),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _urutan.label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: kTeks,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 18,
-              color: kTeks,
-            ),
-          ],
         ),
       ),
     );
@@ -497,20 +488,37 @@ class _KartuSiswa extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Divider(height: 1, color: kBorder),
                 ),
-                const Row(
-                  children: [
-                    Text(
-                      'Lihat Detail',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: kBiru,
-                      ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
                     ),
-                    Icon(Icons.chevron_right_rounded, size: 18, color: kBiru),
-                    Spacer(),
-                    Icon(Icons.chevron_right_rounded, color: kTeksSekunder),
-                  ],
+                    decoration: BoxDecoration(
+                      color: kBiruLembut,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Lihat Detail',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: kBiru,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 17,
+                          color: kBiru,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

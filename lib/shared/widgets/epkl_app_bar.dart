@@ -222,19 +222,19 @@ class EpklHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Align(
         alignment: Alignment.centerLeft,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF0F3B87).withValues(alpha: 0.16),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white, width: 1.2),
           ),
-          child: const EpklLogo(ukuran: 28),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const EpklLogo(ukuran: 22),
+          ),
         ),
       ),
       actions: [
@@ -252,6 +252,18 @@ class EpklHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
+                Positioned(
+                  right: -1,
+                  top: -2,
+                  child: Container(
+                    width: 13,
+                    height: 13,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
                 const Icon(Icons.notifications_none_rounded, size: 23),
                 if (adaNotifikasiBaru)
                   Positioned(
@@ -287,13 +299,34 @@ class EpklHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: Colors.white.withValues(alpha: 0.4),
                   ),
                 ),
-                child: const CircleAvatar(
+                child: CircleAvatar(
                   radius: 17,
                   backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: EpklColors.biru,
-                    size: 19,
+                  child: ClipOval(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          right: -7,
+                          top: -9,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF52C6F2,
+                              ).withValues(alpha: 0.18),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.person_rounded,
+                          color: EpklColors.biru,
+                          size: 19,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
