@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../shared/widgets/epkl_widgets.dart';
+
 import 'detail_validasi_jurnal_page.dart';
 
 class ValidasiJurnalPage extends StatefulWidget {
@@ -86,37 +89,7 @@ class _ValidasiJurnalPageState extends State<ValidasiJurnalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF1976D2),
-                Color(0xFF42A5F5),
-              ], // Sesuaikan gradasi birunya
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-          child: AppBar(
-            backgroundColor: Colors
-                .transparent, // Bikin transparan supaya gradasinya kelihatan
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              'Jurnal',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Jurnal'),
       body: Column(
         children: [
           Container(

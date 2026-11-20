@@ -24,12 +24,16 @@ class GuruHomePage extends StatefulWidget {
   /// Dipanggil saat pintasan menuju sebuah tab (index mengikuti
   /// [GuruTujuan.tab]: Siswa=1, Monitoring=2, Profil=3).
   final GuruPindahTab? onPindahTab;
+  final bool tampilkanAppBar;
+  final ValueChanged<bool>? onAdaNotifikasiBaru;
 
   const GuruHomePage({
     super.key,
     this.repository,
     this.agendaRepository,
     this.onPindahTab,
+    this.tampilkanAppBar = true,
+    this.onAdaNotifikasiBaru,
   });
 
   @override
@@ -61,6 +65,7 @@ class _GuruHomePageState extends State<GuruHomePage> {
     try {
       final data = await _repo.ambilDashboard();
       if (!mounted) return;
+      widget.onAdaNotifikasiBaru?.call(data.adaNotifikasiBaru);
       setState(() {
         _data = data;
         _error = null;
@@ -93,11 +98,13 @@ class _GuruHomePageState extends State<GuruHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: EpklHomeAppBar(
-        adaNotifikasiBaru: _data?.adaNotifikasiBaru ?? false,
-        onNotifikasi: () => _buka(GuruTujuan.notifikasi),
-        onProfil: () => _buka(GuruTujuan.profil),
-      ),
+      appBar: widget.tampilkanAppBar
+          ? EpklHomeAppBar(
+              adaNotifikasiBaru: _data?.adaNotifikasiBaru ?? false,
+              onNotifikasi: () => _buka(GuruTujuan.notifikasi),
+              onProfil: () => _buka(GuruTujuan.profil),
+            )
+          : null,
       body: SafeArea(child: _isi()),
     );
   }

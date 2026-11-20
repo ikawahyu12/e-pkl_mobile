@@ -5,6 +5,7 @@ import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../data/repositories/guru_auth_repository_api.dart';
 import '../../../data/repositories/guru_presensi_repository_api.dart';
 import '../../../data/repositories/instansi_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 enum _JenisWaktuPresensi {
   masukMulai,
@@ -267,17 +268,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF48A2E6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Buat Presensi",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Buat Presensi'),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

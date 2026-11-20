@@ -599,9 +599,29 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('guru-login-submit')));
       await tester.pump();
 
-      expect(find.text('Email atau username wajib diisi'), findsOneWidget);
+      expect(find.text('Username wajib diisi'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
+      expect(find.text('Masukkan username'), findsOneWidget);
+      expect(find.text('NIP, email, atau username'), findsNothing);
       expect(find.text('Password wajib diisi'), findsOneWidget);
       expect(repository.loginCalls, 0);
+    });
+
+    testWidgets('username login layout fits a narrow phone screen', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(270 * 3, 553 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(home: GuruLoginPage(repository: _FakeAuthRepository())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Username'), findsOneWidget);
+      expect(find.bySemanticsLabel('Logo E-PKL'), findsOneWidget);
     });
 
     testWidgets('password visibility toggle changes obscured state', (
@@ -637,7 +657,7 @@ void main() {
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-identifier')),
-        'guru@example.test',
+        'guru_uji',
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-password')),
@@ -664,7 +684,7 @@ void main() {
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-identifier')),
-        'guru@example.test',
+        'guru_uji',
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-password')),
@@ -684,14 +704,18 @@ void main() {
       tester,
     ) async {
       final completer = Completer<GuruAuthSession>();
+      var usernameDikirim = '';
       final repository = _FakeAuthRepository()
-        ..onLogin = (identifier, password) => completer.future;
+        ..onLogin = (identifier, password) {
+          usernameDikirim = identifier;
+          return completer.future;
+        };
       await tester.pumpWidget(
         MaterialApp(home: GuruLoginPage(repository: repository)),
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-identifier')),
-        'guru@example.test',
+        'guru_pembimbing',
       );
       await tester.enterText(
         find.byKey(const ValueKey('guru-password')),
@@ -705,6 +729,7 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(repository.loginCalls, 1);
+      expect(usernameDikirim, 'guru_pembimbing');
       completer.complete(_guruSession);
       await tester.pumpAndSettle();
 
