@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-<<<<<<< HEAD
 import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../data/repositories/guru_auth_repository_api.dart';
 import '../../../data/repositories/instansi_repository.dart';
-=======
 import '../../../shared/widgets/epkl_widgets.dart';
->>>>>>> d55eb30 (Upgrade Ui)
 
 class BuatPresensiPage extends StatefulWidget {
   final AgendaRepository? agendaRepository;
