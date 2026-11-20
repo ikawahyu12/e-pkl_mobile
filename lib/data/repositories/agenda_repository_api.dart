@@ -44,7 +44,7 @@ abstract interface class AgendaRepository {
     required DateTime sampai,
   });
 
-  Future>> ambilRentang(
+  Future<Map<String, List<AgendaItem>>> ambilRentang(
     DateTime dari,
     DateTime sampai,
   );
@@ -94,7 +94,7 @@ class AgendaRepositoryApi implements AgendaRepository {
   }
 
   @override
-  Future>> ambilRentang(
+  Future<Map<String, List<AgendaItem>>> ambilRentang(
     DateTime dari,
     DateTime sampai,
   ) async {
@@ -199,7 +199,7 @@ class AgendaRepositoryApi implements AgendaRepository {
     );
   }
 
-  List> _list(dynamic value) {
+  List<Map<String, dynamic>> _list(dynamic value) {
     if (value is! List) {
       throw const FormatException('Daftar agenda dari server tidak valid.');
     }

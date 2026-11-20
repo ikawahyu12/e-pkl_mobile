@@ -45,7 +45,6 @@ class ProfilGuru {
       peran: (json['peran'] ?? 'Guru Pembimbing PKL') as String,
       email: json['email'] as String?,
       noHp: json['no_hp'] as String?,
-      fotoUrl: json['foto_url'] as String?,
       fotoUrl: _resolveFotoUrl(json['foto_url']),
     );
   }
