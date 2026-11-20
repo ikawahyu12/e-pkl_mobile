@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../data/models/profil_guru_model.dart';
 import '../../../data/repositories/profil_guru_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 class EditProfilGuruPage extends StatefulWidget {
   final ProfilGuru profil;
@@ -202,7 +203,7 @@ class _EditProfilGuruPageState extends State<EditProfilGuruPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profil')),
+      appBar: const EpklGradientAppBar(judul: 'Edit Profil'),
       body: SafeArea(
         child: Form(
           key: _formKey,

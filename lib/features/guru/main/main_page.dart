@@ -7,6 +7,8 @@ import '../profil/profil_guru_page.dart';
 import '../../../data/repositories/guru_auth_repository.dart';
 import '../auth/guru_login_page.dart';
 import '../siswa_bimbingan/siswa_bimbingan_page.dart';
+import '../../../shared/utils/guru_navigasi.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 class GuruMainPage extends StatefulWidget {
   final GuruAuthRepository repository;
@@ -21,6 +23,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
   static const _warnaUtama = Color(0xFF1677FF);
 
   int _currentIndex = 0;
+  bool _adaNotifikasiBaru = false;
   final List<Widget?> _halaman = List<Widget?>.filled(4, null);
 
   @override
@@ -42,7 +45,11 @@ class _GuruMainPageState extends State<GuruMainPage> {
   Widget _buatHalaman(int index) {
     switch (index) {
       case 0:
-        return GuruHomePage(onPindahTab: _pilihTab);
+        return GuruHomePage(
+          onPindahTab: _pilihTab,
+          tampilkanAppBar: false,
+          onAdaNotifikasiBaru: _setAdaNotifikasiBaru,
+        );
       case 1:
         return const SiswaBimbinganPage();
       case 2:
@@ -57,9 +64,24 @@ class _GuruMainPageState extends State<GuruMainPage> {
     }
   }
 
+  void _setAdaNotifikasiBaru(bool ada) {
+    if (!mounted || _adaNotifikasiBaru == ada) return;
+    setState(() => _adaNotifikasiBaru = ada);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: EpklHomeAppBar(
+        adaNotifikasiBaru: _adaNotifikasiBaru,
+        onNotifikasi: () => GuruNavigasi.buka(
+          context,
+          GuruTujuan.notifikasi,
+          onPindahTab: _pilihTab,
+        ),
+        onProfil: () => _pilihTab(3),
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -74,7 +96,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE9EFF7)),
               boxShadow: [
                 BoxShadow(
@@ -233,7 +255,7 @@ class _HalamanBelumTersedia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(judul)),
+      appBar: EpklGradientAppBar(judul: judul),
       body: Center(child: Text('Halaman $judul belum tersedia')),
     );
   }

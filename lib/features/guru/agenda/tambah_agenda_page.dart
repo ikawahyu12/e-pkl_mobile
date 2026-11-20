@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/repositories/agenda_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 class TambahAgendaPage extends StatefulWidget {
   final DateTime tanggalAwal;
@@ -164,25 +165,7 @@ class _TambahAgendaPageState extends State<TambahAgendaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F9FF),
-      appBar: AppBar(
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 0,
-        title: const Text(
-          'Tambah Agenda',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
-            ),
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Tambah Agenda'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [

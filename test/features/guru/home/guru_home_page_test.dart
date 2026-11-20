@@ -2,6 +2,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:e_pkl/data/models/dashboard_guru_model.dart';
 import 'package:e_pkl/data/repositories/dashboard_guru_repository.dart';
 import 'package:e_pkl/data/repositories/agenda_repository_api.dart';
+import 'package:e_pkl/data/repositories/guru_presensi_repository_api.dart';
+import 'package:e_pkl/data/repositories/instansi_repository.dart';
 import 'package:e_pkl/features/guru/home/guru_home_page.dart';
 import 'package:e_pkl/features/guru/agenda/agenda_page.dart';
 import 'package:e_pkl/features/guru/agenda/agenda_data.dart';
@@ -31,6 +33,10 @@ class _RepoFake implements DashboardGuruRepository {
 }
 
 class _AgendaRepositoryFake implements AgendaRepository {
+  final List<AgendaInstansiOption> options;
+
+  _AgendaRepositoryFake({this.options = const []});
+
   @override
   Future<List<AgendaItem>> ambilAgenda({
     required DateTime dari,
@@ -38,7 +44,8 @@ class _AgendaRepositoryFake implements AgendaRepository {
   }) async => [];
 
   @override
-  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal) async => [];
+  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal) async =>
+      options;
 
   @override
   Future<AgendaItem> tambah({
@@ -56,6 +63,43 @@ class _AgendaRepositoryFake implements AgendaRepository {
     required StatusAgenda status,
     String? alasanPembatalan,
   }) => throw UnimplementedError();
+}
+
+class _InstansiRepositoryFake implements InstansiRepository {
+  @override
+  Future<List<InstansiOption>> ambilDaftar() async => const [
+    InstansiOption(id: 12, nama: 'Instansi Uji'),
+  ];
+}
+
+class _GuruPresensiRepositoryFake implements GuruPresensiRepository {
+  int? instansiId;
+  List<int>? siswaIds;
+  DateTime? tanggal;
+  String? jamMasukMulai;
+  String? jamMasukSelesai;
+  String? jamPulangMulai;
+  String? jamPulangSelesai;
+
+  @override
+  Future<int> bukaSesi({
+    required int instansiId,
+    required List<int> siswaIds,
+    required DateTime tanggal,
+    required String jamMasukMulai,
+    required String jamMasukSelesai,
+    required String jamPulangMulai,
+    required String jamPulangSelesai,
+  }) async {
+    this.instansiId = instansiId;
+    this.siswaIds = siswaIds;
+    this.tanggal = tanggal;
+    this.jamMasukMulai = jamMasukMulai;
+    this.jamMasukSelesai = jamMasukSelesai;
+    this.jamPulangMulai = jamPulangMulai;
+    this.jamPulangSelesai = jamPulangSelesai;
+    return 17;
+  }
 }
 
 /// Pasang beranda di dalam MaterialApp. Halaman tujuan diganti halaman
@@ -178,10 +222,7 @@ void main() {
       await tester.tap(find.text('Absensi'));
       await tester.pumpAndSettle();
       expect(find.byType(BuatPresensiPage), findsOneWidget);
-      expect(
-        find.textContaining('Backend presensi belum tersedia'),
-        findsOneWidget,
-      );
+      expect(find.text('WAKTU CHECK-IN'), findsOneWidget);
       await _pasang(tester);
       await tester.tap(find.text('Informasi Jurnal').first);
       await tester.pumpAndSettle();
@@ -299,19 +340,48 @@ void main() {
     });
   });
 
-  testWidgets('presensi prototype never reports a successful save', (
+  testWidgets('Buat Presensi mengirim sesi dan siswa terpilih ke repository', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320 * 3, 640 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const MaterialApp(home: BuatPresensiPage()));
+    final presensiRepository = _GuruPresensiRepositoryFake();
+    final date = DateTime.now();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BuatPresensiPage(
+                    agendaRepository: _AgendaRepositoryFake(
+                      options: const [
+                        AgendaInstansiOption(
+                          id: 12,
+                          nama: 'Instansi Uji',
+                          alamat: 'Jalan Uji',
+                          siswa: [AgendaSiswaOption(id: 4, nama: 'Siswa Uji')],
+                        ),
+                      ],
+                    ),
+                    instansiRepository: _InstansiRepositoryFake(),
+                    presensiRepository: presensiRepository,
+                  ),
+                ),
+              ),
+              child: const Text('Buka form presensi'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Buka form presensi'));
+    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(
-      find.textContaining('Backend presensi belum tersedia'),
-      findsOneWidget,
-    );
     await tester.scrollUntilVisible(
       find.text('Simpan Absensi'),
       300,
@@ -320,13 +390,13 @@ void main() {
     await tester.tap(find.text('Simpan Absensi'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Backend belum tersedia'), findsOneWidget);
-    expect(
-      find.text(
-        'Form ini masih berupa prototipe. Data presensi belum disimpan.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Data presensi berhasil disimpan.'), findsNothing);
+    expect(tester.takeException(), isNull);
+    expect(presensiRepository.instansiId, 12);
+    expect(presensiRepository.siswaIds, [4]);
+    expect(presensiRepository.tanggal?.year, date.year);
+    expect(presensiRepository.jamMasukMulai, '07:00');
+    expect(presensiRepository.jamMasukSelesai, '09:00');
+    expect(presensiRepository.jamPulangMulai, '12:00');
+    expect(presensiRepository.jamPulangSelesai, '16:00');
   });
 }

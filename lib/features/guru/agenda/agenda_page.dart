@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../data/repositories/guru_auth_repository_api.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 import 'agenda_data.dart';
 import 'agenda_widgets.dart';
 import 'tambah_agenda_page.dart';
@@ -255,24 +256,6 @@ class _AgendaPageState extends State<AgendaPage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      foregroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: false,
-      titleSpacing: 0,
-      title: const Text(
-        'Agenda',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-      ),
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF1D6FFF), Color(0xFF5BB0FF)],
-          ),
-        ),
-      ),
-    );
+    return const EpklGradientAppBar(judul: 'Agenda');
   }
 }

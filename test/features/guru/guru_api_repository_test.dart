@@ -5,6 +5,7 @@ import 'package:e_pkl/data/models/guru_auth_session.dart';
 import 'package:e_pkl/data/repositories/agenda_repository_api.dart';
 import 'package:e_pkl/data/repositories/guru_api_client.dart';
 import 'package:e_pkl/data/repositories/guru_auth_repository.dart';
+import 'package:e_pkl/data/repositories/guru_presensi_repository_api.dart';
 import 'package:e_pkl/data/repositories/profil_guru_repository_api.dart';
 import 'package:e_pkl/features/guru/agenda/agenda_data.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -208,6 +209,49 @@ void main() {
       expect(options.single.siswa.single.nama, 'Siswa Uji');
       expect(options.single.siswa.single.nis, '12345');
       expect(options.single.siswa.single.kelas, 'XI RPL');
+      client.close();
+    },
+  );
+
+  test(
+    'Guru presensi API opens a session with selected students and time windows',
+    () async {
+      http.Request? request;
+      final client = MockClient((value) async {
+        request = value;
+        return _response({
+          'success': true,
+          'data': {'id': 14},
+        }, statusCode: 201);
+      });
+      final auth = _AuthRepositoryFake();
+      final repository = GuruPresensiRepositoryApi(
+        authRepository: auth,
+        api: GuruApiClient(authRepository: auth, client: client),
+      );
+
+      final sessionId = await repository.bukaSesi(
+        instansiId: 7,
+        siswaIds: [4, 9],
+        tanggal: DateTime(2026, 11, 20),
+        jamMasukMulai: '07:00',
+        jamMasukSelesai: '09:00',
+        jamPulangMulai: '12:00',
+        jamPulangSelesai: '16:00',
+      );
+
+      expect(sessionId, 14);
+      expect(request!.method, 'POST');
+      expect(request!.url.path, '/api/v1/guru/presensi/sesi');
+      expect(jsonDecode(request!.body), {
+        'instansi_id': 7,
+        'siswa_ids': [4, 9],
+        'tanggal': '2026-11-20',
+        'jam_masuk_mulai': '07:00',
+        'jam_masuk_selesai': '09:00',
+        'jam_pulang_mulai': '12:00',
+        'jam_pulang_selesai': '16:00',
+      });
       client.close();
     },
   );

@@ -4,6 +4,7 @@ import '../../../data/models/penilaian_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 import '../../../shared/utils/format_waktu.dart';
 import '../common/guru_ui.dart';
 import '../penilaian/form_penilaian_page.dart';
@@ -98,21 +99,7 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kLatarAbu,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: kTeks,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: const Text(
-          'Detail Siswa',
-          style: TextStyle(
-            color: kTeks,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Detail Siswa'),
       body: SafeArea(child: _isi()),
     );
   }

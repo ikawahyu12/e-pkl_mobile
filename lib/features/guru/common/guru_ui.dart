@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../data/models/siswa_bimbingan_model.dart';
+import '../../../shared/widgets/epkl_app_bar.dart';
 
 // ---------------------------------------------------------------------------
 // Warna (diambil dari frame Figma)
@@ -187,42 +187,14 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   const GradientAppBar({super.key, required this.title});
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
+  Size get preferredSize =>
+      const Size.fromHeight(EpklGradientAppBar.tinggiToolbar);
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      toolbarHeight: kToolbarHeight + 8,
-      backgroundColor: Colors.transparent,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: false,
-      titleSpacing: 0,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [kBiru, kBiruMuda],
-          ),
-        ),
-      ),
-      leading: Navigator.canPop(context)
-          ? IconButton(
-              icon: const Icon(Icons.chevron_left_rounded, size: 32),
-              onPressed: () => Navigator.maybePop(context),
-            )
-          : null,
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+    return EpklGradientAppBar(
+      judul: title,
+      tampilkanTombolKembali: Navigator.canPop(context),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/models/jurnal_model.dart';
 import '../../../data/repositories/jurnal_guru_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 class DetailInformasiJurnalPage extends StatefulWidget {
   final String jurnalId;
@@ -64,34 +65,7 @@ class _DetailInformasiJurnalPageState extends State<DetailInformasiJurnalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              'Detail Informasi Jurnal',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Detail Informasi Jurnal'),
       body: _isi(),
     );
   }
