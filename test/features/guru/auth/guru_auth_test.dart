@@ -152,6 +152,32 @@ void main() {
       },
     );
 
+    test('login sends a NIP identifier using the login field', () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/api/v1/guru/auth/login');
+        expect(jsonDecode(request.body), {
+          'login': '198201012010011001',
+          'password': 'secret',
+        });
+        return _jsonResponse({
+          'success': true,
+          'data': {
+            'token': 'issued-token',
+            'user': {'id': 8, 'role': 'guru'},
+          },
+        });
+      });
+      final repository = GuruAuthRepositoryApi(client: client);
+
+      final session = await repository.masuk(
+        identifier: '198201012010011001',
+        password: 'secret',
+      );
+
+      expect(session.isValidGuruSession, isTrue);
+      client.close();
+    });
+
     test(
       'login rejects a non-Guru response and does not store its token',
       () async {
@@ -230,6 +256,26 @@ void main() {
       client.close();
     });
 
+    test('Guru registration accepts any successful 2xx response', () async {
+      final client = MockClient(
+        (_) async => _jsonResponse({
+          'success': true,
+          'message': 'Instruksi verifikasi akan dikirim.',
+          'data': null,
+        }, statusCode: 201),
+      );
+      final repository = GuruAuthRepositoryApi(client: client);
+
+      await repository.daftarGuru(
+        nip: '198201012010011001',
+        namaLengkap: 'Guru Uji',
+        email: 'guru@example.test',
+        password: 'SecurePassword123',
+        passwordConfirmation: 'SecurePassword123',
+      );
+      client.close();
+    });
+
     test('Guru registration can resend a verification email', () async {
       final client = MockClient((request) async {
         expect(request.method, 'POST');
@@ -244,6 +290,20 @@ void main() {
       final repository = GuruAuthRepositoryApi(client: client);
 
       await repository.kirimUlangVerifikasiGuru(email: ' guru@example.test ');
+      client.close();
+    });
+
+    test('verification resend accepts any successful 2xx response', () async {
+      final client = MockClient(
+        (_) async => _jsonResponse({
+          'success': true,
+          'message': 'Jika akun menunggu verifikasi, tautan baru akan dikirim.',
+          'data': null,
+        }, statusCode: 200),
+      );
+      final repository = GuruAuthRepositoryApi(client: client);
+
+      await repository.kirimUlangVerifikasiGuru(email: 'guru@example.test');
       client.close();
     });
 
@@ -599,6 +659,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('guru-login-submit')));
       await tester.pump();
 
+      expect(
+        find.text('NIP, email, atau username wajib diisi'),
+        findsOneWidget,
+      );
       expect(find.text('Username wajib diisi'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Masukkan username'), findsOneWidget);

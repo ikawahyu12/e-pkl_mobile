@@ -122,6 +122,10 @@ void main() {
     expect(repository.registeredNip, '198201012010011001');
     expect(repository.registeredEmail, 'guru@example.test');
     expect(
+      tester.widget<TextFormField>(find.byType(TextFormField).at(2)).enabled,
+      isFalse,
+    );
+    expect(
       find.textContaining('instruksi verifikasi akan dikirim'),
       findsOneWidget,
     );

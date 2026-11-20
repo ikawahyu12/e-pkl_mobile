@@ -141,7 +141,9 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
           .timeout(_requestTimeout);
       final data = _decodeResponse(response);
 
-      if (response.statusCode != 202 || data['success'] != true) {
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
         throw GuruAuthException(
           _pesanError(data, 'Registrasi Guru tidak dapat diproses.'),
         );
@@ -171,7 +173,9 @@ class GuruAuthRepositoryApi implements GuruAuthRepository {
           .timeout(_requestTimeout);
       final data = _decodeResponse(response);
 
-      if (response.statusCode != 202 || data['success'] != true) {
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
         throw GuruAuthException(
           _pesanError(data, 'Tautan verifikasi tidak dapat dikirim ulang.'),
         );

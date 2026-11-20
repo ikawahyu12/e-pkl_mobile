@@ -26,6 +26,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
   bool _registrationAccepted = false;
   bool _messageIsError = false;
   String? _message;
+  String? _registeredEmail;
 
   @override
   void dispose() {
@@ -92,16 +93,18 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
     });
 
     try {
+      final email = _emailController.text.trim();
       await widget.repository.daftarGuru(
         nip: _nipController.text,
         namaLengkap: _namaController.text,
-        email: _emailController.text,
+        email: email,
         password: _passwordController.text,
         passwordConfirmation: _konfirmasiController.text,
       );
       if (!mounted) return;
       setState(() {
         _registrationAccepted = true;
+        _registeredEmail = email;
         _messageIsError = false;
         _message =
             'Jika NIP dan nama cocok dengan data Guru dan belum terhubung ke akun lain, instruksi verifikasi akan dikirim ke email. Setelah verifikasi, masuk menggunakan NIP atau email dan password.';
@@ -119,8 +122,11 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
   }
 
   Future<void> _kirimUlangVerifikasi() async {
-    if (_loading ||
-        _resending ||
+    if (_loading || _resending) {
+      return;
+    }
+    final email = _registeredEmail ?? _emailController.text.trim();
+    if (_registeredEmail == null &&
         !(_emailFieldKey.currentState?.validate() ?? false)) {
       return;
     }
@@ -132,9 +138,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
     });
 
     try {
-      await widget.repository.kirimUlangVerifikasiGuru(
-        email: _emailController.text,
-      );
+      await widget.repository.kirimUlangVerifikasiGuru(email: email);
       if (!mounted) return;
       setState(() {
         _messageIsError = false;
@@ -182,7 +186,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
                     TextFormField(
                       key: const ValueKey('guru-register-nip'),
                       controller: _nipController,
-                      enabled: !_loading,
+                      enabled: !_loading && !_registrationAccepted,
                       maxLength: 30,
                       textInputAction: TextInputAction.next,
                       validator: _validasiNip,
@@ -195,7 +199,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
                     TextFormField(
                       key: const ValueKey('guru-register-name'),
                       controller: _namaController,
-                      enabled: !_loading,
+                      enabled: !_loading && !_registrationAccepted,
                       maxLength: 120,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
@@ -209,7 +213,8 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
                     TextFormField(
                       key: _emailFieldKey,
                       controller: _emailController,
-                      enabled: !_loading && !_resending,
+                      enabled:
+                          !_loading && !_resending && !_registrationAccepted,
                       maxLength: 150,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
@@ -225,7 +230,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
                     TextFormField(
                       key: const ValueKey('guru-register-password'),
                       controller: _passwordController,
-                      enabled: !_loading,
+                      enabled: !_loading && !_registrationAccepted,
                       obscureText: true,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.newPassword],
@@ -239,7 +244,7 @@ class _GuruRegisterPageState extends State<GuruRegisterPage> {
                     TextFormField(
                       key: const ValueKey('guru-register-confirm-password'),
                       controller: _konfirmasiController,
-                      enabled: !_loading,
+                      enabled: !_loading && !_registrationAccepted,
                       obscureText: true,
                       textInputAction: TextInputAction.done,
                       validator: _validasiKonfirmasi,
