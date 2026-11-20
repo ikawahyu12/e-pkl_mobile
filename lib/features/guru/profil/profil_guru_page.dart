@@ -139,21 +139,6 @@ class _ProfilGuruPageState extends State<ProfilGuruPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Profil Akun',
-          style: TextStyle(
-            color: _teks,
-            fontWeight: FontWeight.w700,
-            fontSize: 22,
-          ),
-        ),
-      ),
       body: SafeArea(child: _isi()),
     );
   }

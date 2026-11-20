@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/repositories/guru_auth_repository.dart';
+import '../../../shared/widgets/epkl_widgets.dart';
 
 class GantiPasswordPage extends StatefulWidget {
   final GuruAuthRepository repository;
@@ -116,11 +117,9 @@ class _GantiPasswordPageState extends State<GantiPasswordPage> {
     return PopScope(
       canPop: !widget.wajibGanti,
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: !widget.wajibGanti,
-          title: Text(
-            widget.wajibGanti ? 'Wajib Ganti Kata Sandi' : 'Keamanan Akun',
-          ),
+        appBar: EpklGradientAppBar(
+          judul: widget.wajibGanti ? 'Wajib Ganti Kata Sandi' : 'Keamanan Akun',
+          tampilkanTombolKembali: !widget.wajibGanti,
         ),
         body: SafeArea(
           child: Form(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../shared/widgets/epkl_widgets.dart';
+
 import 'buat_presensi.dart';
 import '../rekap_kehadiran/rekap_kehadiran.dart';
 
@@ -25,26 +28,12 @@ class _PresensiPageState extends State<PresensiPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF48A2E6),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            size: 18,
-            color: Colors.white,
-          ),
-          onPressed: widget.onBack ?? () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Presensi',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+      appBar: EpklGradientAppBar(
+        judul: 'Presensi',
+        onKembali: widget.onBack,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             tooltip: 'Periksa status backend',
             onPressed: _tampilkanStatusBackend,
           ),
@@ -54,10 +43,7 @@ class _PresensiPageState extends State<PresensiPage> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 16,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             color: const Color(0xFF48A2E6),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,10 +185,7 @@ class _PresensiPageState extends State<PresensiPage> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
                 ),

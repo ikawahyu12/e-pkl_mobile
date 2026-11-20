@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/epkl_widgets.dart';
+
 class DetailValidasiJurnalPage extends StatefulWidget {
   final Map<String, dynamic> jurnalData;
 
@@ -36,35 +38,7 @@ class _DetailValidasiJurnalPageState extends State<DetailValidasiJurnalPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              'Detail',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Detail Jurnal'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

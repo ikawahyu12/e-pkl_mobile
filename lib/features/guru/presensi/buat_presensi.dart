@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+<<<<<<< HEAD
 import '../../../data/repositories/agenda_repository_api.dart';
 import '../../../data/repositories/guru_auth_repository_api.dart';
 import '../../../data/repositories/instansi_repository.dart';
+=======
+import '../../../shared/widgets/epkl_widgets.dart';
+>>>>>>> d55eb30 (Upgrade Ui)
 
 class BuatPresensiPage extends StatefulWidget {
   final AgendaRepository? agendaRepository;
@@ -200,17 +204,7 @@ class _BuatPresensiPageState extends State<BuatPresensiPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF48A2E6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Buat Presensi",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Buat Presensi'),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

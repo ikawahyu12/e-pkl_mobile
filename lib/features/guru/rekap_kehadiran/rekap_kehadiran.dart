@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/epkl_widgets.dart';
+
 class RekapKehadiranPage extends StatefulWidget {
   const RekapKehadiranPage({Key? key}) : super(key: key);
 
@@ -17,21 +19,7 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
       backgroundColor: const Color(
         0xFFF8F9FA,
       ), // Warna background abu-abu sangat muda
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF48A2E6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Rekap Kehadiran",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ),
+      appBar: const EpklGradientAppBar(judul: 'Rekap Kehadiran'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

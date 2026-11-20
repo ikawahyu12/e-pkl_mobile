@@ -7,7 +7,7 @@ import '../profil/ganti_password_page.dart';
 import '../../../shared/widgets/epkl_colors.dart';
 import '../main/main_page.dart';
 
-const _latarLogin = Color(0xFFF5F7FB);
+const _latarLogin = Color(0xFFF2F7FD);
 const _fieldBorder = Color(0xFFCBD5E1);
 const _fieldText = Color(0xFF334155);
 const _errorBackground = Color(0xFFE8B4BA);
@@ -89,7 +89,7 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
 
   String? _validasiIdentifier(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Email atau username wajib diisi';
+      return 'Username wajib diisi';
     }
     return null;
   }
@@ -124,7 +124,7 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                     width: double.infinity,
                     margin: const EdgeInsets.fromLTRB(14, 16, 14, 0),
                     constraints: const BoxConstraints(maxWidth: 460),
-                    padding: const EdgeInsets.fromLTRB(24, 22, 24, 60),
+                    padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -152,14 +152,17 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                             ),
                           ),
                           const SizedBox(height: 22),
-                          const _LoginFieldLabel('NIP, email, atau username'),
+                          const _LoginFieldLabel('Username'),
                           const SizedBox(height: 7),
                           TextFormField(
                             key: const ValueKey('guru-identifier'),
                             controller: _identifierController,
                             enabled: !_loading,
-                            keyboardType: TextInputType.emailAddress,
+                            keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.none,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             autofillHints: const [AutofillHints.username],
                             validator: _validasiIdentifier,
                             style: const TextStyle(
@@ -168,7 +171,7 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                               fontWeight: FontWeight.w600,
                             ),
                             decoration: _dekorasiInput(
-                              hint: 'Masukkan NIP, email, atau username',
+                              hint: 'Masukkan username',
                               icon: Icons.person_outline,
                             ),
                           ),
@@ -257,24 +260,60 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
                                   key: const ValueKey('guru-login-submit'),
                                   borderRadius: BorderRadius.circular(12),
                                   onTap: _loading ? null : _masuk,
-                                  child: Center(
-                                    child: _loading
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Masuk',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Stack(
+                                      children: [
+                                        Positioned(
+                                          right: -14,
+                                          top: -25,
+                                          child: Container(
+                                            width: 86,
+                                            height: 86,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(
+                                                alpha: .12,
+                                              ),
+                                              shape: BoxShape.circle,
                                             ),
                                           ),
+                                        ),
+                                        Center(
+                                          child: _loading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white,
+                                                      ),
+                                                )
+                                              : const Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      'Masuk',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Icon(
+                                                      Icons
+                                                          .arrow_forward_rounded,
+                                                      color: Colors.white,
+                                                      size: 17,
+                                                    ),
+                                                  ],
+                                                ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -357,32 +396,60 @@ class _LoginHeader extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(gradient: EpklColors.gradienUtama),
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF124FC4),
+                        EpklColors.biru,
+                        Color(0xFF39A9E8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+                CustomPaint(painter: _LoginWavePainter()),
+              ],
+            ),
           ),
         ),
         Positioned(
-          top: 56,
+          top: 48,
           left: 0,
           right: 0,
           child: Center(
             child: Container(
-              width: 105,
-              height: 105,
-              decoration: const BoxDecoration(
+              width: 142,
+              height: 74,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              clipBehavior: Clip.antiAlias,
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/epkl_logo_splash.png',
-                  width: 86,
-                  height: 86,
-                  fit: BoxFit.contain,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .72),
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0B3C91).withValues(alpha: .2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/logo_epkl.png',
+                width: 112,
+                height: 49,
+                fit: BoxFit.contain,
+                semanticLabel: 'Logo E-PKL',
               ),
             ),
           ),
@@ -462,6 +529,28 @@ class _LoginHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+class _LoginWavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * .46, size.height)
+      ..cubicTo(
+        size.width * .66,
+        size.height * .72,
+        size.width * .8,
+        size.height * .82,
+        size.width,
+        size.height * .52,
+      )
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = Colors.white.withValues(alpha: .08));
+  }
+
+  @override
+  bool shouldRepaint(covariant _LoginWavePainter oldDelegate) => false;
 }
 
 class _LoginFieldLabel extends StatelessWidget {
