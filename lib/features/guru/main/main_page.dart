@@ -72,6 +72,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: EpklHomeAppBar(
         adaNotifikasiBaru: _adaNotifikasiBaru,
         onNotifikasi: () => GuruNavigasi.buka(
@@ -95,7 +96,7 @@ class _GuruMainPageState extends State<GuruMainPage> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE9EFF7)),
               boxShadow: [
                 BoxShadow(
