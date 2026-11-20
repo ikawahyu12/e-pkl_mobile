@@ -1,9 +1,19 @@
 import 'dart:typed_data';
 
+import 'package:image_picker/image_picker.dart' show XFile;
+
 import '../models/profil_guru_model.dart';
 import 'guru_api_client.dart';
 import 'guru_auth_repository.dart';
 import 'profil_guru_repository.dart';
+
+class ProfilGuruException implements Exception {
+  final String message;
+  const ProfilGuruException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class ProfilGuruRepositoryApi implements ProfilGuruRepository {
   final GuruAuthRepository _authRepository;
@@ -24,15 +34,26 @@ class ProfilGuruRepositoryApi implements ProfilGuruRepository {
   @override
   Future<ProfilGuru> ubahProfil({
     required String nama,
+    String? email,
     String? noHp,
     Uint8List? fotoBytes,
     String? fotoNama,
+    XFile? foto,
   }) async {
     final Map<String, dynamic> body = {'nama': nama};
+    if (email != null) body['email'] = email;
     if (noHp != null) body['no_hp'] = noHp;
 
+    // Mendukung input foto baik berupa Uint8List (baru) maupun XFile (lama)
+    Uint8List? resolvedBytes = fotoBytes;
+    String? resolvedName = fotoNama;
+    if (resolvedBytes == null && foto != null) {
+      resolvedBytes = await foto.readAsBytes();
+      resolvedName = foto.name;
+    }
+
     final Map<String, dynamic> response;
-    if (fotoBytes == null) {
+    if (resolvedBytes == null) {
       response = await _api.send(
         method: 'PATCH',
         path: 'guru/profil',
@@ -46,9 +67,9 @@ class ProfilGuruRepositoryApi implements ProfilGuruRepository {
           for (final entry in body.entries)
             if (entry.value != null) entry.key: entry.value.toString(),
         },
-        fileBytes: fotoBytes,
+        fileBytes: resolvedBytes,
         fileField: 'foto',
-        fileName: fotoNama ?? 'foto-profil.jpg',
+        fileName: resolvedName ?? 'foto-profil.jpg',
       );
     }
     return ProfilGuru.fromJson(_data(response));

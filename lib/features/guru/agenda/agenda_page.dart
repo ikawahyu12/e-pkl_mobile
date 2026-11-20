@@ -9,6 +9,7 @@ import 'agenda_widgets.dart';
 import 'tambah_agenda_page.dart';
 
 class AgendaPage extends StatefulWidget {
+  /// Kalau null, memakai AgendaRepositoryApi.
   final AgendaRepository? repository;
 
   const AgendaPage({super.key, this.repository});
@@ -22,7 +23,7 @@ class _AgendaPageState extends State<AgendaPage> {
       widget.repository ??
       AgendaRepositoryApi(authRepository: GuruAuthRepositoryApi());
 
-  DateTime _dipilih = DateTime.now();
+  DateTime _dipilih = hariIni();
   List<AgendaItem> _agendaMinggu = [];
   bool _memuat = true;
   String? _error;
@@ -61,13 +62,15 @@ class _AgendaPageState extends State<AgendaPage> {
       setState(() => _agendaMinggu = agenda);
     } catch (error) {
       if (!mounted || muatId != _muatId) return;
-      setState(() => _error = error.toString());
+      setState(() => _error = _pesan(error));
     } finally {
       if (mounted && muatId == _muatId) {
         setState(() => _memuat = false);
       }
     }
   }
+
+  String _pesan(Object e) => e.toString().replaceFirst('Exception: ', '');
 
   void _pilihTanggal(DateTime tanggal) {
     final perluMuat =
@@ -99,15 +102,82 @@ class _AgendaPageState extends State<AgendaPage> {
     _snack('Agenda kunjungan berhasil ditambahkan.');
   }
 
-  Future<void> _tandaiSelesai(AgendaItem item) async {
-    try {
-      await _repository.ubahStatus(id: item.id, status: StatusAgenda.selesai);
-      await _muat();
-      if (mounted) _snack('Agenda ditandai selesai.');
-    } catch (error) {
-      if (mounted) _snack(error.toString(), error: true);
+  // ---------- aksi pada kartu ----------
+
+  Future<void> _aksiKartu(AgendaItem item) async {
+    final selesai = item.status == StatusAgenda.selesai;
+    final dibatalkan = item.status == StatusAgenda.dibatalkan;
+
+    final aksi = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!dibatalkan)
+              ListTile(
+                leading: Icon(
+                  selesai
+                      ? Icons.event_repeat_outlined
+                      : Icons.check_circle_outline,
+                  color: const Color(0xFF1D6FFF),
+                ),
+                title: Text(selesai ? 'Tandai belum selesai' : 'Tandai selesai'),
+                onTap: () => Navigator.pop(ctx, 'status'),
+              ),
+            if (!dibatalkan && !selesai)
+              ListTile(
+                leading: const Icon(
+                  Icons.cancel_outlined,
+                  color: Colors.orange,
+                ),
+                title: const Text('Batalkan agenda'),
+                onTap: () => Navigator.pop(ctx, 'batalkan'),
+              ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFE0245E),
+              ),
+              title: const Text('Hapus jadwal'),
+              onTap: () => Navigator.pop(ctx, 'hapus'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (aksi == 'status') {
+      await _ubahStatus(
+        item,
+        selesai ? StatusAgenda.terjadwal : StatusAgenda.selesai,
+      );
+    } else if (aksi == 'batalkan') {
+      await _batalkan(item);
+    } else if (aksi == 'hapus') {
+      await _hapus(item.id);
     }
   }
+
+  Future<void> _ubahStatus(AgendaItem item, StatusAgenda baru) async {
+    try {
+      await _repository.ubahStatus(id: item.id, status: baru);
+      await _muat();
+      if (mounted) {
+        _snack(
+          baru == StatusAgenda.selesai
+              ? 'Agenda ditandai selesai.'
+              : 'Agenda ditandai terjadwal.',
+        );
+      }
+    } catch (error) {
+      if (mounted) _snack(_pesan(error), error: true);
+    }
+  }
+
+  Future<void> _tandaiSelesai(AgendaItem item) =>
+      _ubahStatus(item, StatusAgenda.selesai);
 
   Future<void> _batalkan(AgendaItem item) async {
     final controller = TextEditingController();
@@ -152,7 +222,36 @@ class _AgendaPageState extends State<AgendaPage> {
       await _muat();
       if (mounted) _snack('Agenda dibatalkan dan disimpan dalam histori.');
     } catch (error) {
-      if (mounted) _snack(error.toString(), error: true);
+      if (mounted) _snack(_pesan(error), error: true);
+    }
+  }
+
+  Future<void> _hapus(int id) async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus jadwal?'),
+        content: const Text('Jadwal kunjungan ini akan dihapus permanen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true) return;
+
+    try {
+      await _repository.hapus(id);
+      await _muat();
+      if (mounted) _snack('Jadwal dihapus.');
+    } catch (error) {
+      if (mounted) _snack(_pesan(error), error: true);
     }
   }
 
@@ -167,65 +266,74 @@ class _AgendaPageState extends State<AgendaPage> {
       );
   }
 
+  // ---------- tampilan ----------
+
   @override
   Widget build(BuildContext context) {
     final agenda = _agendaTerpilih;
-    final adalahHariIni =
-        kunciTanggal(_dipilih) == kunciTanggal(DateTime.now());
+    final adalahHariIni = kunciTanggal(_dipilih) == kunciTanggal(hariIni());
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          RingkasanAgendaCard(agenda: agenda, adalahHariIni: adalahHariIni),
-          const SizedBox(height: 18),
-          StripTanggalAgenda(
-            dipilih: _dipilih,
-            onPilihTanggal: _pilihTanggal,
-            onGeserMinggu: _geserMinggu,
-            onHariIni: () => _pilihTanggal(DateTime.now()),
-            tanggalDenganAgenda: _tanggalDenganAgenda,
-          ),
-          const SizedBox(height: 18),
-          _buildJudulHari(agenda.length),
-          if (_memuat)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Column(
-                children: [
-                  Text(_error!, textAlign: TextAlign.center),
-                  TextButton(onPressed: _muat, child: const Text('Coba lagi')),
-                ],
-              ),
-            )
-          else if (agenda.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(
-                child: Text(
-                  'Belum ada kunjungan di tanggal ini.',
-                  style: TextStyle(color: Color(0xFF94A3B8)),
+      body: RefreshIndicator(
+        onRefresh: _muat,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            RingkasanAgendaCard(agenda: agenda, adalahHariIni: adalahHariIni),
+            const SizedBox(height: 18),
+            StripTanggalAgenda(
+              dipilih: _dipilih,
+              onPilihTanggal: _pilihTanggal,
+              onGeserMinggu: _geserMinggu,
+              onHariIni: () => _pilihTanggal(hariIni()),
+              tanggalDenganAgenda: _tanggalDenganAgenda,
+            ),
+            const SizedBox(height: 18),
+            _buildJudulHari(agenda.length),
+            if (_memuat)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _muat,
+                      child: const Text('Coba lagi'),
+                    ),
+                  ],
+                ),
+              )
+            else if (agenda.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'Belum ada kunjungan di tanggal ini.',
+                    style: TextStyle(color: Color(0xFF94A3B8)),
+                  ),
+                ),
+              )
+            else
+              ...agenda.map(
+                (item) => KartuAgenda(
+                  item: item,
+                  onSelesai: () => _tandaiSelesai(item),
+                  onBatalkan: () => _batalkan(item),
                 ),
               ),
-            )
-          else
-            ...agenda.map(
-              (item) => KartuAgenda(
-                item: item,
-                onSelesai: () => _tandaiSelesai(item),
-                onBatalkan: () => _batalkan(item),
-              ),
-            ),
-          const SizedBox(height: 16),
-          TombolTambahJadwal(onTap: _tambahJadwal),
-        ],
+            const SizedBox(height: 16),
+            TombolTambahJadwal(onTap: _tambahJadwal),
+          ],
+        ),
       ),
     );
   }

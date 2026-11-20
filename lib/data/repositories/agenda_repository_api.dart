@@ -2,6 +2,14 @@ import '../../features/guru/agenda/agenda_data.dart';
 import 'guru_api_client.dart';
 import 'guru_auth_repository.dart';
 
+class AgendaException implements Exception {
+  final String message;
+  const AgendaException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class AgendaSiswaOption {
   final int id;
   final String nama;
@@ -36,7 +44,12 @@ abstract interface class AgendaRepository {
     required DateTime sampai,
   });
 
-  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal);
+  Future>> ambilRentang(
+    DateTime dari,
+    DateTime sampai,
+  );
+
+  Future<List<AgendaInstansiOption>> ambilOpsi([DateTime? tanggal]);
 
   Future<AgendaItem> tambah({
     required int instansiId,
@@ -52,6 +65,8 @@ abstract interface class AgendaRepository {
     required StatusAgenda status,
     String? alasanPembatalan,
   });
+
+  Future<void> hapus(int id);
 }
 
 class AgendaRepositoryApi implements AgendaRepository {
@@ -79,14 +94,39 @@ class AgendaRepositoryApi implements AgendaRepository {
   }
 
   @override
-  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal) async {
+  Future>> ambilRentang(
+    DateTime dari,
+    DateTime sampai,
+  ) async {
+    final response = await _api.send(
+      method: 'GET',
+      path: 'guru/agenda',
+      queryParameters: {
+        'dari': kunciTanggal(dari),
+        'sampai': kunciTanggal(sampai),
+      },
+    );
+
+    final hasil = <String, List<AgendaItem>>{};
+    for (final json in _list(response['data'])) {
+      final kunci = json['tanggal']?.toString();
+      if (kunci == null) continue;
+      hasil.putIfAbsent(kunci, () => []).add(AgendaItem.fromJson(json));
+    }
+    return hasil;
+  }
+
+  @override
+  Future<List<AgendaInstansiOption>> ambilOpsi([DateTime? tanggal]) async {
     final response = await _api.send(
       method: 'GET',
       path: 'guru/agenda/opsi',
-      queryParameters: {'tanggal': kunciTanggal(tanggal)},
+      queryParameters: {
+        if (tanggal != null) 'tanggal': kunciTanggal(tanggal),
+      },
     );
     return _list(response['data']).map((item) {
-      final students = _list(item['siswa']).map((student) {
+      final students = _list(item['siswa'] ?? const []).map((student) {
         return AgendaSiswaOption(
           id: (student['id'] as num).toInt(),
           nama: student['nama']?.toString() ?? '',
@@ -137,9 +177,7 @@ class AgendaRepositoryApi implements AgendaRepository {
     final statusApi = switch (status) {
       StatusAgenda.selesai => 'selesai',
       StatusAgenda.dibatalkan => 'dibatalkan',
-      StatusAgenda.terjadwal => throw ArgumentError(
-        'Agenda terjadwal tidak dapat mengubah status melalui endpoint ini.',
-      ),
+      StatusAgenda.terjadwal => 'terjadwal',
     };
     final response = await _api.send(
       method: 'PATCH',
@@ -153,11 +191,19 @@ class AgendaRepositoryApi implements AgendaRepository {
     return AgendaItem.fromJson(_map(response['data']));
   }
 
-  List<Map<String, dynamic>> _list(dynamic value) {
+  @override
+  Future<void> hapus(int id) async {
+    await _api.send(
+      method: 'DELETE',
+      path: 'guru/agenda/$id',
+    );
+  }
+
+  List> _list(dynamic value) {
     if (value is! List) {
       throw const FormatException('Daftar agenda dari server tidak valid.');
     }
-    return value.whereType<Map>().map(_map).toList();
+    return value.whereType().map(_map).toList();
   }
 
   Map<String, dynamic> _map(dynamic value) {

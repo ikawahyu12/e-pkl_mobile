@@ -1,3 +1,5 @@
+// Simpan di: lib/data/repositories/profil_guru_repository.dart (timpa file lama)
+import 'package:image_picker/image_picker.dart' show XFile;
 import 'dart:typed_data';
 
 import '../models/profil_guru_model.dart';
@@ -7,9 +9,11 @@ import '../models/profil_guru_model.dart';
 abstract class ProfilGuruRepository {
   Future<ProfilGuru> ambilProfil();
 
+  /// [foto] opsional; kalau null, foto lama dibiarkan.
   Future<ProfilGuru> ubahProfil({
     required String nama,
     String? noHp,
+    XFile? foto,
     Uint8List? fotoBytes,
     String? fotoNama,
   });
@@ -24,6 +28,7 @@ abstract class ProfilGuruRepository {
   Future<void> logout();
 }
 
+/// Data dummy supaya UI bisa jalan sebelum API tersedia.
 class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   ProfilGuru _data = const ProfilGuru(
     nama: 'Andini Rahmawati, S.Pd.',
@@ -46,6 +51,7 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   Future<ProfilGuru> ubahProfil({
     required String nama,
     String? noHp,
+    XFile? foto,
     Uint8List? fotoBytes,
     String? fotoNama,
   }) async {
@@ -76,6 +82,5 @@ class ProfilGuruRepositoryMock implements ProfilGuruRepository {
   @override
   Future<void> logout() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    // TODO: hapus token dari secure storage.
   }
 }
