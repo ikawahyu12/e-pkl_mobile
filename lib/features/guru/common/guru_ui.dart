@@ -133,11 +133,20 @@ class StatusKehadiranChip extends StatelessWidget {
         const Color(0xFFFFEDC2),
         const Color(0xFFB45309),
       ),
+      StatusKehadiran.sakit => (
+        const Color(0xFFFFEDC2),
+        const Color(0xFFB45309),
+      ),
       StatusKehadiran.alpha => (
         const Color(0xFFFEE2E2),
         const Color(0xFFDC2626),
       ),
+      StatusKehadiran.belumLengkap => (
+        const Color(0xFFE5E7EB),
+        const Color(0xFF6B7280),
+      ),
     };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../data/models/penilaian_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 import '../common/guru_ui.dart';
 import 'form_penilaian_page.dart';
 
@@ -16,13 +18,6 @@ enum _Saring {
   const _Saring(this.label);
 }
 
-/// Halaman "Penilaian": daftar siswa bimbingan beserta status nilainya.
-/// Ketuk siswa untuk membuka Formulir Penilaian.
-///
-/// Dibuka dari tombol Penilaian di Beranda:
-///   Navigator.of(context).push(
-///     MaterialPageRoute<void>(builder: (_) => const DaftarPenilaianPage()),
-///   );
 class DaftarPenilaianPage extends StatefulWidget {
   final SiswaBimbinganRepository? siswaRepository;
   final PenilaianRepository? penilaianRepository;
@@ -39,14 +34,17 @@ class DaftarPenilaianPage extends StatefulWidget {
 
 class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
   late final SiswaBimbinganRepository _siswaRepo =
-      widget.siswaRepository ?? SiswaBimbinganRepositoryMock();
+      widget.siswaRepository ?? SiswaBimbinganRepositoryApi();
+
   late final PenilaianRepository _nilaiRepo =
-      widget.penilaianRepository ?? PenilaianRepositoryMock();
+      widget.penilaianRepository ?? PenilaianRepositoryApi();
 
   List<SiswaBimbingan> _siswa = [];
   Map<String, Penilaian> _nilai = {};
+
   bool _loading = true;
   String? _error;
+
   _Saring _saring = _Saring.semua;
 
   @override
@@ -55,6 +53,7 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
     _muat();
   }
 
+  /// Mengambil daftar siswa dan status penilaiannya dari backend.
   Future<void> _muat({bool tampilLoading = true}) async {
     if (tampilLoading) {
       setState(() {
@@ -62,35 +61,52 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
         _error = null;
       });
     }
+
     try {
+      // Ambil daftar siswa bimbingan dari Laravel.
       final siswa = await _siswaRepo.ambilDaftar();
+
+      // Ambil penilaian setiap siswa dari Laravel.
       final hasil = await Future.wait(
         siswa.map((s) => _nilaiRepo.ambilPenilaian(s.id)),
       );
+
+      // Susun data penilaian berdasarkan ID siswa.
       final peta = <String, Penilaian>{};
+
       for (var i = 0; i < siswa.length; i++) {
         final n = hasil[i];
-        if (n != null) peta[siswa[i].id] = n;
+
+        if (n != null) {
+          peta[siswa[i].id] = n;
+        }
       }
+
       if (!mounted) return;
+
       setState(() {
         _siswa = siswa;
         _nilai = peta;
         _error = null;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(
-        () => _error = 'Gagal memuat data penilaian. Periksa koneksi Anda.',
-      );
+
+      setState(() {
+        _error = 'Gagal memuat data penilaian. Periksa koneksi Anda.';
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
+  /// Menyaring siswa berdasarkan status penilaian.
   List<SiswaBimbingan> get _tampil {
     return _siswa.where((s) {
       final sudah = _nilai.containsKey(s.id);
+
       switch (_saring) {
         case _Saring.semua:
           return true;
@@ -102,6 +118,7 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
     }).toList();
   }
 
+  /// Membuka formulir penilaian siswa.
   Future<void> _bukaForm(SiswaBimbingan s) async {
     await Navigator.push(
       context,
@@ -113,7 +130,10 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
         ),
       ),
     );
+
     if (!mounted) return;
+
+    // Muat ulang data setelah kembali dari formulir.
     await _muat(tampilLoading: false);
   }
 
@@ -127,7 +147,10 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
   }
 
   Widget _isi() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_error != null) {
       return StatePesan(
         icon: Icons.cloud_off_rounded,
@@ -176,13 +199,17 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 14),
+
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _Saring.values.map(_chip).toList(),
             ),
+
             const SizedBox(height: 14),
+
             if (data.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
@@ -210,6 +237,7 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
 
   Widget _chip(_Saring f) {
     final terpilih = _saring == f;
+
     return ChoiceChip(
       label: Text(f.label),
       selected: terpilih,
@@ -220,7 +248,9 @@ class _DaftarPenilaianPageState extends State<DaftarPenilaianPage> {
         color: terpilih ? kBiru : kTeks,
         fontWeight: FontWeight.w600,
       ),
-      onSelected: (_) => setState(() => _saring = f),
+      onSelected: (_) {
+        setState(() => _saring = f);
+      },
     );
   }
 }
@@ -239,6 +269,7 @@ class _KartuPenilaian extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = nilai;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -262,6 +293,7 @@ class _KartuPenilaian extends StatelessWidget {
               children: [
                 AvatarInisial(inisial: siswa.inisial, radius: 22),
                 const SizedBox(width: 12),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +321,9 @@ class _KartuPenilaian extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 const SizedBox(width: 8),
+
                 if (n == null)
                   const _Lencana(
                     teks: 'Belum dinilai',
@@ -302,6 +336,7 @@ class _KartuPenilaian extends StatelessWidget {
                     latar: const Color(0xFFE8F8EF),
                     warna: const Color(0xFF16A34A),
                   ),
+
                 const Icon(Icons.chevron_right_rounded, color: kTeksSekunder),
               ],
             ),

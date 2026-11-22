@@ -1,10 +1,29 @@
 enum StatusKehadiran {
   hadir('Hadir'),
   izin('Izin'),
-  alpha('Alpha');
+  sakit('Sakit'),
+  alpha('Alpha'),
+  belumLengkap('Belum Lengkap');
 
   final String label;
   const StatusKehadiran(this.label);
+
+  static StatusKehadiran fromJson(dynamic value) {
+    switch (value?.toString().toLowerCase()) {
+      case 'hadir':
+        return StatusKehadiran.hadir;
+      case 'izin':
+        return StatusKehadiran.izin;
+      case 'sakit':
+        return StatusKehadiran.sakit;
+      case 'alpha':
+        return StatusKehadiran.alpha;
+      case 'belum_lengkap':
+        return StatusKehadiran.belumLengkap;
+      default:
+        return StatusKehadiran.belumLengkap;
+    }
+  }
 }
 
 class SiswaBimbingan {
@@ -30,33 +49,35 @@ class SiswaBimbingan {
     this.persentaseKehadiran = 0,
   });
 
-  /// "Ahmad Rizky Pratama" -> "AR"
   String get inisial {
     final kata = nama
         .trim()
         .split(RegExp(r'\s+'))
         .where((k) => k.isNotEmpty)
         .toList();
+
     if (kata.isEmpty) return '?';
     if (kata.length == 1) return kata.first[0].toUpperCase();
+
     return (kata[0][0] + kata[1][0]).toUpperCase();
   }
 
-  /// Sesuaikan key dengan response API backend.
   factory SiswaBimbingan.fromJson(Map<String, dynamic> json) {
+    final persentase =
+        num.tryParse('${json['persentase_kehadiran'] ?? 0}') ?? 0;
+
     return SiswaBimbingan(
-      id: '${json['id']}',
-      nama: (json['nama'] ?? '') as String,
-      nis: (json['nis'] ?? '') as String,
-      kelas: (json['kelas'] ?? '') as String,
-      instansi: (json['instansi'] ?? '') as String,
-      status: StatusKehadiran.values.firstWhere(
-        (s) => s.name == json['status'],
-        orElse: () => StatusKehadiran.hadir,
+      id: '${json['siswa_id'] ?? json['id'] ?? ''}',
+      nama: '${json['nama_lengkap'] ?? json['nama'] ?? ''}',
+      nis: '${json['nis'] ?? ''}',
+      kelas: '${json['kelas'] ?? '-'}',
+      instansi: '${json['instansi'] ?? '-'}',
+      status: StatusKehadiran.fromJson(
+        json['status_kehadiran'] ?? json['status'],
       ),
-      pembimbingIndustri: (json['pembimbing_industri'] ?? '-') as String,
-      periodePkl: (json['periode_pkl'] ?? '-') as String,
-      persentaseKehadiran: (json['persentase_kehadiran'] ?? 0) as int,
+      pembimbingIndustri: '${json['pembimbing_industri'] ?? '-'}',
+      periodePkl: '${json['periode_pkl'] ?? '-'}',
+      persentaseKehadiran: persentase.round(),
     );
   }
 }

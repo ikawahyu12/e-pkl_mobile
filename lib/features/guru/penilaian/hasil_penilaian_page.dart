@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../data/models/penilaian_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 import '../../../shared/utils/format_waktu.dart';
 import '../common/guru_ui.dart';
 
-/// Menampilkan hasil penilaian + status penyimpanan.
-/// Cukup menerima [siswaId] (mis. dari notifikasi); [siswa] dan [penilaian]
-/// opsional untuk melewati proses loading bila datanya sudah ada.
 class HasilPenilaianPage extends StatefulWidget {
   final String siswaId;
   final SiswaBimbingan? siswa;
   final Penilaian? penilaian;
 
-  /// true bila halaman dibuka tepat setelah menekan "Simpan Nilai".
+  /// true jika halaman dibuka setelah berhasil menyimpan nilai.
   final bool baruDisimpan;
+
   final SiswaBimbinganRepository? siswaRepository;
   final PenilaianRepository? penilaianRepository;
 
@@ -36,20 +36,24 @@ class HasilPenilaianPage extends StatefulWidget {
 
 class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
   late final SiswaBimbinganRepository _siswaRepo =
-      widget.siswaRepository ?? SiswaBimbinganRepositoryMock();
+      widget.siswaRepository ?? SiswaBimbinganRepositoryApi();
+
   late final PenilaianRepository _nilaiRepo =
-      widget.penilaianRepository ?? PenilaianRepositoryMock();
+      widget.penilaianRepository ?? PenilaianRepositoryApi();
 
   SiswaBimbingan? _siswa;
   Penilaian? _nilai;
+
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+
     _siswa = widget.siswa;
     _nilai = widget.penilaian;
+
     if (_siswa != null && _nilai != null) {
       _loading = false;
     } else {
@@ -62,21 +66,28 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
       _loading = true;
       _error = null;
     });
+
     try {
       final siswa = _siswa ?? await _siswaRepo.ambilDetail(widget.siswaId);
+
       final nilai = _nilai ?? await _nilaiRepo.ambilPenilaian(widget.siswaId);
+
       if (!mounted) return;
+
       setState(() {
         _siswa = siswa;
         _nilai = nilai;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(
-        () => _error = 'Gagal memuat hasil penilaian. Periksa koneksi Anda.',
-      );
+
+      setState(() {
+        _error = 'Gagal memuat hasil penilaian. Periksa koneksi Anda.';
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -90,7 +101,10 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
   }
 
   Widget _isi() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_error != null) {
       return StatePesan(
         icon: Icons.cloud_off_rounded,
@@ -99,14 +113,17 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
         onAksi: _muat,
       );
     }
+
     final siswa = _siswa;
     final n = _nilai;
+
     if (siswa == null) {
       return const StatePesan(
         icon: Icons.person_off_outlined,
         pesan: 'Data siswa tidak ditemukan.',
       );
     }
+
     if (n == null) {
       return const StatePesan(
         icon: Icons.star_outline_rounded,
@@ -115,6 +132,7 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
     }
 
     final pad = hPadding(context);
+
     return ResponsiveCenter(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(pad, 16, pad, 24),
@@ -126,8 +144,11 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
               waktu: n.disimpanPada,
             ),
             const SizedBox(height: 16),
+
             RingkasanSiswaCard(siswa: siswa),
+
             const SizedBox(height: 16),
+
             KartuPutih(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,6 +162,7 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
                     ),
                   ),
                   const SizedBox(height: 14),
+
                   for (var i = 0; i < Penilaian.namaAspek.length; i++)
                     _BarisNilai(
                       label: Penilaian.namaAspek[i],
@@ -150,9 +172,13 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
+
             RataRataCard(rata: n.rataRata, predikat: n.predikat),
+
             const SizedBox(height: 16),
+
             KartuPutih(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +203,9 @@ class _HasilPenilaianPageState extends State<HasilPenilaianPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
+
             GradientButton(
               label: 'Selesai',
               onPressed: () => Navigator.maybePop(context),
