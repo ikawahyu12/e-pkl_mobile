@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../data/models/penilaian_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
 import '../../../shared/utils/format_waktu.dart';
 import '../common/guru_ui.dart';
 import '../penilaian/form_penilaian_page.dart';
 import '../penilaian/hasil_penilaian_page.dart';
 
-/// Detail siswa. Cukup menerima [siswaId], jadi bisa dibuka dari daftar
-/// siswa maupun dari notifikasi.
+/// Detail siswa. Bisa dibuka dari daftar siswa maupun notifikasi.
 class DetailSiswaPage extends StatefulWidget {
   final String siswaId;
   final SiswaBimbinganRepository? siswaRepository;
@@ -30,14 +31,19 @@ class DetailSiswaPage extends StatefulWidget {
 
 class _DetailSiswaPageState extends State<DetailSiswaPage> {
   late final SiswaBimbinganRepository _repo =
-      widget.siswaRepository ?? SiswaBimbinganRepositoryMock();
+      widget.siswaRepository ?? SiswaBimbinganRepositoryApi();
+
   late final PenilaianRepository _nilaiRepo =
-      widget.penilaianRepository ?? PenilaianRepositoryMock();
+      widget.penilaianRepository ?? PenilaianRepositoryApi();
 
   SiswaBimbingan? _siswa;
   Penilaian? _nilai;
+
   bool _loading = true;
+  bool _loadingPenilaian = false;
+
   String? _error;
+  String? _errorPenilaian;
 
   @override
   void initState() {
@@ -45,28 +51,85 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
     _muat();
   }
 
+  /// Mengambil detail siswa dan penilaian dari backend.
   Future<void> _muat() async {
+    if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = null;
+      _errorPenilaian = null;
     });
+
     try {
       final siswa = await _repo.ambilDetail(widget.siswaId);
-      final nilai = await _nilaiRepo.ambilPenilaian(widget.siswaId);
+
       if (!mounted) return;
+
       setState(() {
         _siswa = siswa;
-        _nilai = nilai;
+        _nilai = null;
       });
-    } catch (_) {
+
+      await _muatPenilaian();
+    } catch (e) {
+      debugPrint('Gagal memuat detail siswa: $e');
+
       if (!mounted) return;
-      setState(() => _error = 'Gagal memuat data siswa. Periksa koneksi Anda.');
+
+      setState(() {
+        _error = 'Gagal memuat data siswa. Periksa koneksi Anda.';
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
+  /// Mengambil penilaian siswa dari backend.
+  Future<void> _muatPenilaian() async {
+    if (!mounted) return;
+
+    setState(() {
+      _loadingPenilaian = true;
+      _errorPenilaian = null;
+    });
+
+    try {
+      final nilai = await _nilaiRepo.ambilPenilaian(widget.siswaId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _nilai = nilai;
+        _errorPenilaian = null;
+      });
+    } catch (e) {
+      debugPrint('Gagal memuat penilaian: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _nilai = null;
+        _errorPenilaian =
+            'Gagal mengambil data penilaian. Periksa koneksi Anda.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingPenilaian = false;
+        });
+      }
+    }
+  }
+
+  /// Membuka form penilaian.
   Future<void> _beriNilai() async {
+    if (_siswa == null) return;
+
     final hasil = await Navigator.push<Penilaian>(
       context,
       MaterialPageRoute(
@@ -77,10 +140,17 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
         ),
       ),
     );
-    if (hasil != null && mounted) setState(() => _nilai = hasil);
+
+    if (hasil != null && mounted) {
+      // Ambil ulang data dari backend setelah penyimpanan.
+      await _muat();
+    }
   }
 
+  /// Membuka halaman hasil penilaian.
   void _lihatHasil() {
+    if (_siswa == null || _nilai == null) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -105,7 +175,10 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
   }
 
   Widget _isi() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_error != null || _siswa == null) {
       return StatePesan(
         icon: Icons.cloud_off_rounded,
@@ -160,7 +233,9 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
+
             KartuPutih(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,6 +249,7 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
+
                   _BarisInfo(label: 'Instansi', nilai: s.instansi),
                   _BarisInfo(
                     label: 'Pembimbing industri',
@@ -187,7 +263,9 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 16),
+
             KartuPutih(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,8 +278,38 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                       color: kTeks,
                     ),
                   ),
+
                   const SizedBox(height: 12),
-                  if (n == null)
+
+                  if (_loadingPenilaian)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_errorPenilaian != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          color: Colors.redAccent,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorPenilaian!,
+                            style: const TextStyle(color: kTeksSekunder),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Coba lagi',
+                          onPressed: _muatPenilaian,
+                          icon: const Icon(Icons.refresh_rounded, color: kBiru),
+                        ),
+                      ],
+                    )
+                  else if (n == null)
                     const Row(
                       children: [
                         Icon(Icons.star_outline_rounded, color: kTeksSekunder),
@@ -243,6 +351,7 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                         PredikatChip(predikat: n.predikat, rata: n.rataRata),
                       ],
                     ),
+
                     if (n.disimpanPada != null) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -257,12 +366,17 @@ class _DetailSiswaPageState extends State<DetailSiswaPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
+
             GradientButton(
               label: n == null ? 'Beri Penilaian' : 'Ubah Penilaian',
-              onPressed: _beriNilai,
+              onPressed: _errorPenilaian != null || _loadingPenilaian
+                  ? null
+                  : _beriNilai,
             ),
-            if (n != null) ...[
+
+            if (n != null && _errorPenilaian == null) ...[
               const SizedBox(height: 12),
               SizedBox(
                 height: 52,

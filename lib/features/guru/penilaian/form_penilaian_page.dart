@@ -4,13 +4,11 @@ import 'package:flutter/services.dart';
 import '../../../data/models/penilaian_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
 import '../../../data/repositories/penilaian_repository.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
 import '../common/guru_ui.dart';
 import 'hasil_penilaian_page.dart';
 
 /// Formulir penilaian siswa.
-/// Bila [penilaianAwal] diisi, formulir terisi otomatis (mode ubah nilai).
-/// Setelah berhasil disimpan, halaman diganti ke [HasilPenilaianPage] dan
-/// halaman pemanggil menerima [Penilaian] hasil simpan lewat Navigator.
 class FormPenilaianPage extends StatefulWidget {
   final SiswaBimbingan siswa;
   final Penilaian? penilaianAwal;
@@ -29,23 +27,28 @@ class FormPenilaianPage extends StatefulWidget {
 
 class _FormPenilaianPageState extends State<FormPenilaianPage> {
   late final PenilaianRepository _repo =
-      widget.repository ?? PenilaianRepositoryMock();
+      widget.repository ?? PenilaianRepositoryApi();
 
   final _formKey = GlobalKey<FormState>();
+
   late final List<TextEditingController> _ctrl;
   late final TextEditingController _catatan;
+
   bool _menyimpan = false;
 
   @override
   void initState() {
     super.initState();
+
     final awal = widget.penilaianAwal;
+
     _ctrl = List.generate(
       Penilaian.namaAspek.length,
       (i) => TextEditingController(
         text: awal != null && i < awal.nilai.length ? '${awal.nilai[i]}' : '',
       ),
     );
+
     _catatan = TextEditingController(text: awal?.catatan ?? '');
   }
 
@@ -54,37 +57,84 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
     for (final c in _ctrl) {
       c.dispose();
     }
+
     _catatan.dispose();
+
     super.dispose();
   }
 
-  /// Daftar nilai bila SEMUA aspek valid (0–100), selain itu null.
+  /// Mengambil nilai jika semua aspek valid.
   List<int>? _nilaiValid() {
     final hasil = <int>[];
+
     for (final c in _ctrl) {
       final v = int.tryParse(c.text.trim());
-      if (!Penilaian.nilaiValid(v)) return null;
+
+      if (!Penilaian.nilaiValid(v)) {
+        return null;
+      }
+
       hasil.add(v!);
     }
+
     return hasil;
   }
 
   String? _validasiNilai(String? v) {
     final teks = (v ?? '').trim();
-    if (teks.isEmpty) return 'Wajib';
-    if (!Penilaian.nilaiValid(int.tryParse(teks))) return '0–100';
+
+    if (teks.isEmpty) {
+      return 'Wajib';
+    }
+
+    if (!Penilaian.nilaiValid(int.tryParse(teks))) {
+      return '0–100';
+    }
+
     return null;
   }
 
+  /// Popup ketika siswa belum memulai PKL.
+  Future<void> _tampilkanPopupPenilaianBelumTersedia() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Penilaian Belum Tersedia',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Siswa belum memulai PKL. Penilaian bisa dilakukan setelah kegiatan PKL dimulai.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Mengerti',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Menyimpan penilaian ke backend.
   Future<void> _simpan() async {
     FocusScope.of(context).unfocus();
+
     final nilai = _nilaiValid();
+
     if (!(_formKey.currentState?.validate() ?? false) || nilai == null) {
       tampilkanSnack(context, 'Periksa kembali nilai yang diisi', error: true);
       return;
     }
 
     setState(() => _menyimpan = true);
+
     try {
       final tersimpan = await _repo.simpanPenilaian(
         Penilaian(
@@ -93,7 +143,9 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
           catatan: _catatan.text.trim(),
         ),
       );
+
       if (!mounted) return;
+
       Navigator.of(context).pushReplacement<void, Penilaian>(
         MaterialPageRoute<void>(
           builder: (_) => HasilPenilaianPage(
@@ -106,17 +158,31 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
         ),
         result: tersimpan,
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+
       setState(() => _menyimpan = false);
-      tampilkanSnack(context, 'Gagal menyimpan nilai. Coba lagi.', error: true);
+
+      final pesanError = e.toString().toLowerCase();
+
+      if (pesanError.contains('penilaian hanya dapat disimpan')) {
+        await _tampilkanPopupPenilaianBelumTersedia();
+      } else {
+        tampilkanSnack(
+          context,
+          'Gagal menyimpan nilai. Coba lagi.',
+          error: true,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final pad = hPadding(context);
+
     final nilai = _nilaiValid();
+
     final rata = nilai == null ? null : Penilaian.hitungRata(nilai);
 
     return Scaffold(
@@ -133,7 +199,9 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   RingkasanSiswaCard(siswa: widget.siswa),
+
                   const SizedBox(height: 16),
+
                   KartuPutih(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,12 +214,16 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
                             color: kTeks,
                           ),
                         ),
+
                         const SizedBox(height: 2),
+
                         const Text(
                           'Isi nilai 0–100 untuk setiap aspek',
                           style: TextStyle(fontSize: 12, color: kTeksSekunder),
                         ),
+
                         const SizedBox(height: 14),
+
                         for (var i = 0; i < Penilaian.namaAspek.length; i++)
                           Padding(
                             padding: EdgeInsets.only(
@@ -170,14 +242,18 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
                   RataRataCard(
                     rata: rata,
                     predikat: rata == null
                         ? null
                         : Penilaian.hitungPredikat(rata),
                   ),
+
                   const SizedBox(height: 16),
+
                   KartuPutih(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +266,9 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
                             color: kTeks,
                           ),
                         ),
+
                         const SizedBox(height: 12),
+
                         TextFormField(
                           controller: _catatan,
                           enabled: !_menyimpan,
@@ -223,7 +301,9 @@ class _FormPenilaianPageState extends State<FormPenilaianPage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   GradientButton(
                     label: 'Simpan Nilai',
                     loading: _menyimpan,
@@ -272,7 +352,9 @@ class _BarisAspek extends StatelessWidget {
             ),
           ),
         ),
+
         const SizedBox(width: 12),
+
         SizedBox(
           width: 72,
           child: TextFormField(

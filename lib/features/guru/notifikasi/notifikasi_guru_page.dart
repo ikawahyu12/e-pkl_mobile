@@ -8,6 +8,7 @@ import '../../../shared/widgets/epkl_widgets.dart';
 import '../common/guru_ui.dart';
 import '../penilaian/hasil_penilaian_page.dart';
 import '../siswa_bimbingan/detail_siswa_page.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
 
 /// Daftar notifikasi guru pembimbing.
 ///
@@ -45,7 +46,7 @@ class _NotifikasiGuruPageState extends State<NotifikasiGuruPage> {
   late final SiswaBimbinganRepository _siswaRepo =
       widget.siswaRepository ?? SiswaBimbinganRepositoryMock();
   late final PenilaianRepository _nilaiRepo =
-      widget.penilaianRepository ?? PenilaianRepositoryMock();
+      widget.penilaianRepository ?? PenilaianRepositoryApi();
 
   List<Notifikasi> _data = [];
   bool _loading = true;

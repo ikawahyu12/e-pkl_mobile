@@ -6,6 +6,8 @@ import '../../../data/repositories/siswa_bimbingan_repository.dart';
 import '../../../shared/widgets/epkl_colors.dart';
 import '../common/guru_ui.dart';
 import 'detail_siswa_page.dart';
+import '../../../data/repositories/penilaian_repository_api.dart';
+import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 
 class SiswaBimbinganPage extends StatefulWidget {
   final SiswaBimbinganRepository? repository;
@@ -23,9 +25,9 @@ class SiswaBimbinganPage extends StatefulWidget {
 
 class _SiswaBimbinganPageState extends State<SiswaBimbinganPage> {
   late final SiswaBimbinganRepository _repo =
-      widget.repository ?? SiswaBimbinganRepositoryMock();
+      widget.repository ?? SiswaBimbinganRepositoryApi();
   late final PenilaianRepository _nilaiRepo =
-      widget.penilaianRepository ?? PenilaianRepositoryMock();
+      widget.penilaianRepository ?? PenilaianRepositoryApi();
 
   final _cari = TextEditingController();
 
