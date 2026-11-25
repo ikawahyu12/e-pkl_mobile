@@ -90,7 +90,6 @@ class _GuruLoginPageState extends State<GuruLoginPage> {
   String? _validasiIdentifier(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'NIP, email, atau username wajib diisi';
-      return 'Username wajib diisi';
     }
     return null;
   }

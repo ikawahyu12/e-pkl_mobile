@@ -102,64 +102,6 @@ class _AgendaPageState extends State<AgendaPage> {
     _snack('Agenda kunjungan berhasil ditambahkan.');
   }
 
-  // ---------- aksi pada kartu ----------
-
-  Future<void> _aksiKartu(AgendaItem item) async {
-    final selesai = item.status == StatusAgenda.selesai;
-    final dibatalkan = item.status == StatusAgenda.dibatalkan;
-
-    final aksi = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!dibatalkan)
-              ListTile(
-                leading: Icon(
-                  selesai
-                      ? Icons.event_repeat_outlined
-                      : Icons.check_circle_outline,
-                  color: const Color(0xFF1D6FFF),
-                ),
-                title: Text(selesai ? 'Tandai belum selesai' : 'Tandai selesai'),
-                onTap: () => Navigator.pop(ctx, 'status'),
-              ),
-            if (!dibatalkan && !selesai)
-              ListTile(
-                leading: const Icon(
-                  Icons.cancel_outlined,
-                  color: Colors.orange,
-                ),
-                title: const Text('Batalkan agenda'),
-                onTap: () => Navigator.pop(ctx, 'batalkan'),
-              ),
-            ListTile(
-              leading: const Icon(
-                Icons.delete_outline,
-                color: Color(0xFFE0245E),
-              ),
-              title: const Text('Hapus jadwal'),
-              onTap: () => Navigator.pop(ctx, 'hapus'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (aksi == 'status') {
-      await _ubahStatus(
-        item,
-        selesai ? StatusAgenda.terjadwal : StatusAgenda.selesai,
-      );
-    } else if (aksi == 'batalkan') {
-      await _batalkan(item);
-    } else if (aksi == 'hapus') {
-      await _hapus(item.id);
-    }
-  }
-
   Future<void> _ubahStatus(AgendaItem item, StatusAgenda baru) async {
     try {
       await _repository.ubahStatus(id: item.id, status: baru);
@@ -221,35 +163,6 @@ class _AgendaPageState extends State<AgendaPage> {
       );
       await _muat();
       if (mounted) _snack('Agenda dibatalkan dan disimpan dalam histori.');
-    } catch (error) {
-      if (mounted) _snack(_pesan(error), error: true);
-    }
-  }
-
-  Future<void> _hapus(int id) async {
-    final yakin = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus jadwal?'),
-        content: const Text('Jadwal kunjungan ini akan dihapus permanen.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-    if (yakin != true) return;
-
-    try {
-      await _repository.hapus(id);
-      await _muat();
-      if (mounted) _snack('Jadwal dihapus.');
     } catch (error) {
       if (mounted) _snack(_pesan(error), error: true);
     }

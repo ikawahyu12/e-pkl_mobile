@@ -1,216 +1,237 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/models/siswa_bimbingan_model.dart';
+import '../../../data/repositories/siswa_bimbingan_repository.dart';
+import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
+import '../common/guru_ui.dart';
 
 class RekapKehadiranPage extends StatefulWidget {
-  const RekapKehadiranPage({Key? key}) : super(key: key);
+  final SiswaBimbinganRepository? repository;
+
+  const RekapKehadiranPage({super.key, this.repository});
 
   @override
   State<RekapKehadiranPage> createState() => _RekapKehadiranPageState();
 }
 
 class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
-  // State untuk tab filter (0 = Minggu Ini, 1 = Bulan Ini)
-  int _selectedFilterIndex = 0;
+  late final SiswaBimbinganRepository _repository =
+      widget.repository ?? SiswaBimbinganRepositoryApi();
+
+  List<SiswaBimbingan> _siswa = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  Future<void> _muat() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final data = await _repository.ambilDaftar();
+      if (!mounted) return;
+      setState(() {
+        _siswa = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Gagal memuat rekap kehadiran. Periksa koneksi Anda.';
+        _loading = false;
+      });
+    }
+  }
+
+  int get _jumlahHadir =>
+      _siswa.where((siswa) => siswa.status == StatusKehadiran.hadir).length;
+
+  int get _jumlahIzin =>
+      _siswa.where((siswa) => siswa.status == StatusKehadiran.izin).length;
+
+  int get _jumlahSakit =>
+      _siswa.where((siswa) => siswa.status == StatusKehadiran.sakit).length;
+
+  int get _jumlahAlpha =>
+      _siswa.where((siswa) => siswa.status == StatusKehadiran.alpha).length;
+
+  double get _rataRataKehadiran {
+    if (_siswa.isEmpty) return 0;
+    final total = _siswa.fold<int>(
+      0,
+      (jumlah, siswa) => jumlah + siswa.persentaseKehadiran,
+    );
+    return total / _siswa.length;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF8F9FA,
-      ), // Warna background abu-abu sangat muda
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: const EpklGradientAppBar(judul: 'Rekap Kehadiran'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. TAB FILTER (Minggu Ini / Bulan Ini)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFilterTab("Minggu ini", 0),
-                    _buildFilterTab("Bulan ini", 1),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 2. GRID STATISTIK (Hadir, Terlambat, Izin, Alpha)
-            Row(
-              children: [
-                Expanded(child: _buildStatCard("Hadir", "45", Colors.green)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard("Terlambat", "8", Colors.orange),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildStatCard("Izin", "3", Colors.blue)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildStatCard("Alpha", "2", Colors.red)),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // 3. CARD TINGKAT KEHADIRAN
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
+      body: RefreshIndicator(
+        onRefresh: _muat,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  // Lingkaran Progress (Menggunakan Stack untuk simulasi visual)
-                  SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CircularProgressIndicator(
-                          value: 0.77, // 77%
-                          strokeWidth: 8,
-                          backgroundColor: Colors.grey.shade100,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.green,
-                          ),
-                        ),
-                        const Center(
-                          child: Text(
-                            "77%",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Teks Keterangan
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Tingkat Kehadiran",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          "Kehadiran kumulatif siswa di PT. Informatika Solusi Nusantara mencapai 77.6% semester ini.",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 160),
+                  StatePesan(
+                    icon: Icons.cloud_off_rounded,
+                    pesan: _error!,
+                    aksiLabel: 'Coba lagi',
+                    onAksi: _muat,
                   ),
                 ],
+              )
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Hadir',
+                          _jumlahHadir.toString(),
+                          Colors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Izin',
+                          _jumlahIzin.toString(),
+                          Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Sakit',
+                          _jumlahSakit.toString(),
+                          Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Alpha',
+                          _jumlahAlpha.toString(),
+                          Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildRingkasanKehadiran(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Kehadiran Per Siswa',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_siswa.isEmpty)
+                    const StatePesan(
+                      icon: Icons.person_search_outlined,
+                      pesan: 'Belum ada data siswa bimbingan.',
+                    )
+                  else
+                    for (final siswa in _siswa) _buildSiswaRekapItem(siswa),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // 4. HEADER LIST SISWA
-            const Text(
-              "Kehadiran Per Siswa",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 12),
-
-            // 5. LIST SISWA DENGAN PROGRESS BAR
-            _buildSiswaRekapItem(
-              nama: "Ahmad Rizky Pratama",
-              kelas: "XI RPL 1",
-              persentase: 77.6,
-              persentaseText: "77.6%",
-              warnaPersentase: Colors.blue,
-            ),
-            _buildSiswaRekapItem(
-              nama: "Budi Setiawan",
-              kelas: "XI RPL 1",
-              persentase: 96.5,
-              persentaseText: "96.5%",
-              warnaPersentase: Colors.green,
-            ),
-            _buildSiswaRekapItem(
-              nama: "Citra Lestari",
-              kelas: "XI RPL 2",
-              persentase: 86.2,
-              persentaseText: "86.2%",
-              warnaPersentase: Colors.blue,
-            ),
-            _buildSiswaRekapItem(
-              nama: "Deni Prasetyo",
-              kelas: "XI RPL 2",
-              persentase: 68.9,
-              persentaseText: "68.9%",
-              warnaPersentase: Colors.blue,
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  // --- WIDGET HELPER ---
+  Widget _buildRingkasanKehadiran() {
+    final persentase = _rataRataKehadiran;
+    final nilai = persentase.clamp(0, 100);
 
-  // Widget Tab Filter
-  Widget _buildFilterTab(String text, int index) {
-    bool isSelected = _selectedFilterIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilterIndex = index;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1677FF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade600,
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: nilai / 100,
+                  strokeWidth: 8,
+                  backgroundColor: Colors.grey.shade100,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                ),
+                Center(
+                  child: Text(
+                    '${persentase.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tingkat Kehadiran',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${_siswa.length} siswa bimbingan memiliki rata-rata '
+                  'kehadiran ${persentase.toStringAsFixed(1)}% berdasarkan '
+                  'data terbaru.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Widget Kotak Statistik
   Widget _buildStatCard(String title, String count, Color dotColor) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -222,18 +243,10 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Titik warna kecil di pojok kiri atas
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
           const SizedBox(height: 12),
           Text(
@@ -250,14 +263,14 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
     );
   }
 
-  // Widget List Siswa
-  Widget _buildSiswaRekapItem({
-    required String nama,
-    required String kelas,
-    required double persentase,
-    required String persentaseText,
-    required Color warnaPersentase,
-  }) {
+  Widget _buildSiswaRekapItem(SiswaBimbingan siswa) {
+    final persentase = siswa.persentaseKehadiran.toDouble().clamp(0, 100);
+    final warna = persentase >= 90
+        ? Colors.green
+        : persentase >= 75
+        ? Colors.blue
+        : Colors.red;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -269,12 +282,11 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
         children: [
           Row(
             children: [
-              // Avatar Inisial
               CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey.shade100,
                 child: Text(
-                  nama.substring(0, 1),
+                  siswa.inisial,
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.bold,
@@ -283,13 +295,12 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Nama & Kelas
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      nama,
+                      siswa.nama,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -297,43 +308,30 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      kelas,
+                      siswa.kelas,
                       style: const TextStyle(fontSize: 10, color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-              // Persentase Text
               Text(
-                persentaseText,
+                '${siswa.persentaseKehadiran}%',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: warnaPersentase,
+                  color: warna,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Progress Bar Multivarna (Simulasi visual seperti di Figma)
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 6,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: (persentase * 10).toInt(),
-                    child: Container(color: Colors.green),
-                  ),
-                  Expanded(flex: 10, child: Container(color: Colors.orange)),
-                  Expanded(flex: 5, child: Container(color: Colors.red)),
-                  Expanded(
-                    flex: 15,
-                    child: Container(color: Colors.grey.shade200),
-                  ),
-                ],
-              ),
+            child: LinearProgressIndicator(
+              value: persentase / 100,
+              minHeight: 6,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(warna),
             ),
           ),
         ],

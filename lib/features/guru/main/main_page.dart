@@ -246,17 +246,3 @@ class _TombolNavigasi extends StatelessWidget {
     );
   }
 }
-
-class _HalamanBelumTersedia extends StatelessWidget {
-  const _HalamanBelumTersedia({required this.judul});
-
-  final String judul;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: EpklGradientAppBar(judul: judul),
-      body: Center(child: Text('Halaman $judul belum tersedia')),
-    );
-  }
-}

@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:e_pkl/features/guru/penilaian/daftar_penilaian.dart';
-import 'package:e_pkl/features/guru/validasi_jurnal/validasi_jurnal_page.dart';
 
 const _data = DashboardGuru(
   jumlahSiswa: 12,
@@ -44,7 +43,13 @@ class _AgendaRepositoryFake implements AgendaRepository {
   }) async => [];
 
   @override
-  Future<List<AgendaInstansiOption>> ambilOpsi(DateTime tanggal) async =>
+  Future<Map<String, List<AgendaItem>>> ambilRentang(
+    DateTime dari,
+    DateTime sampai,
+  ) async => {};
+
+  @override
+  Future<List<AgendaInstansiOption>> ambilOpsi([DateTime? tanggal]) async =>
       options;
 
   @override
@@ -63,6 +68,9 @@ class _AgendaRepositoryFake implements AgendaRepository {
     required StatusAgenda status,
     String? alasanPembatalan,
   }) => throw UnimplementedError();
+
+  @override
+  Future<void> hapus(int id) => throw UnimplementedError();
 }
 
 class _InstansiRepositoryFake implements InstansiRepository {
@@ -155,7 +163,6 @@ void main() {
       expect(find.text('Menu Cepat'), findsOneWidget);
       expect(find.text('Absensi'), findsOneWidget);
       expect(find.text('Informasi Jurnal'), findsOneWidget);
-      expect(find.text('Validasi Jurnal'), findsOneWidget);
       expect(find.text('Agenda'), findsOneWidget);
       expect(find.text('Informasi Terbaru'), findsOneWidget);
       expect(
@@ -227,11 +234,6 @@ void main() {
       await tester.tap(find.text('Informasi Jurnal').first);
       await tester.pumpAndSettle();
       expect(find.text('Informasi Jurnal'), findsOneWidget);
-
-      await _pasang(tester);
-      await tester.tap(find.text('Validasi Jurnal'));
-      await tester.pumpAndSettle();
-      expect(find.byType(ValidasiJurnalPage), findsOneWidget);
 
       await _pasang(tester);
       await tester.tap(find.text('Jurnal').first);
