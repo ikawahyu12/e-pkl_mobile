@@ -1,3 +1,5 @@
+import '../../core/config/api_config.dart';
+
 class JurnalModel {
   final String id;
   final int? penempatanId;
@@ -69,7 +71,32 @@ class JurnalLampiran {
     return JurnalLampiran(
       namaFile: json['nama_file']?.toString() ?? '',
       mimeType: json['mime_type']?.toString() ?? '',
-      url: json['url']?.toString() ?? '',
+      url: _resolveDokumentasiUrl(json['url']),
     );
   }
+}
+
+String _resolveDokumentasiUrl(dynamic value) {
+  if (value is! String || value.trim().isEmpty) return '';
+
+  final uri = Uri.tryParse(value.trim());
+  if (uri == null) return '';
+  final apiUri = Uri.tryParse(ApiConfig.baseUrl);
+  if (apiUri == null) return uri.toString();
+
+  if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+    return Uri(
+      scheme: apiUri.scheme,
+      userInfo: apiUri.userInfo,
+      host: apiUri.host,
+      port: apiUri.hasPort ? apiUri.port : null,
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+      fragment: uri.hasFragment ? uri.fragment : null,
+    ).toString();
+  }
+  if (!uri.hasAuthority && uri.path.startsWith('/')) {
+    return apiUri.replace(path: uri.path).toString();
+  }
+  return uri.toString();
 }
