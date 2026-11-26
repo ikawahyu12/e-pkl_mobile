@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/models/pengajuan_izin_model.dart';
 import '../../../data/models/siswa_bimbingan_model.dart';
+import '../../../data/repositories/izin_guru_repository.dart';
 import '../../../data/repositories/siswa_bimbingan_repository.dart';
 import '../../../data/repositories/siswa_bimbingan_repository_api.dart';
 import '../../../shared/widgets/epkl_widgets.dart';
 import '../common/guru_ui.dart';
+import 'riwayat_izin_siswa_page.dart';
 
 class RekapKehadiranPage extends StatefulWidget {
   final SiswaBimbinganRepository? repository;
+  final IzinGuruRepository? izinRepository;
 
-  const RekapKehadiranPage({super.key, this.repository});
+  const RekapKehadiranPage({super.key, this.repository, this.izinRepository});
 
   @override
   State<RekapKehadiranPage> createState() => _RekapKehadiranPageState();
@@ -18,8 +22,11 @@ class RekapKehadiranPage extends StatefulWidget {
 class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
   late final SiswaBimbinganRepository _repository =
       widget.repository ?? SiswaBimbinganRepositoryApi();
+  late final IzinGuruRepository _izinRepository =
+      widget.izinRepository ?? IzinGuruRepositoryApi();
 
   List<SiswaBimbingan> _siswa = [];
+  List<PengajuanIzinModel> _pengajuanIzin = [];
   bool _loading = true;
   String? _error;
 
@@ -38,10 +45,20 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
     }
 
     try {
-      final data = await _repository.ambilDaftar();
+      var dataSiswa = <SiswaBimbingan>[];
+      var dataIzin = <PengajuanIzinModel>[];
+      await Future.wait<void>([
+        () async {
+          dataSiswa = await _repository.ambilDaftar();
+        }(),
+        () async {
+          dataIzin = await _izinRepository.ambilDaftar();
+        }(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _siswa = data;
+        _siswa = dataSiswa;
+        _pengajuanIzin = dataIzin;
         _loading = false;
       });
     } catch (_) {
@@ -56,11 +73,13 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
   int get _jumlahHadir =>
       _siswa.where((siswa) => siswa.status == StatusKehadiran.hadir).length;
 
-  int get _jumlahIzin =>
-      _siswa.where((siswa) => siswa.status == StatusKehadiran.izin).length;
+  int get _jumlahIzin => _pengajuanIzin
+      .where((izin) => izin.jenis.trim().toLowerCase() == 'izin')
+      .length;
 
-  int get _jumlahSakit =>
-      _siswa.where((siswa) => siswa.status == StatusKehadiran.sakit).length;
+  int get _jumlahSakit => _pengajuanIzin
+      .where((izin) => izin.jenis.trim().toLowerCase() == 'sakit')
+      .length;
 
   int get _jumlahAlpha =>
       _siswa.where((siswa) => siswa.status == StatusKehadiran.alpha).length;
@@ -115,6 +134,17 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                           'Izin',
                           _jumlahIzin.toString(),
                           Colors.orange,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => RiwayatIzinSiswaPage(
+                                  statusIzin: 'izin',
+                                  repository: widget.izinRepository,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -127,6 +157,17 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                           'Sakit',
                           _jumlahSakit.toString(),
                           Colors.blue,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => RiwayatIzinSiswaPage(
+                                  statusIzin: 'sakit',
+                                  repository: widget.izinRepository,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -232,33 +273,45 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
     );
   }
 
-  Widget _buildStatCard(String title, String count, Color dotColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            count,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ],
+  Widget _buildStatCard(
+    String title,
+    String count,
+    Color dotColor, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              count,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
