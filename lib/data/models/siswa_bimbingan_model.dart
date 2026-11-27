@@ -36,6 +36,7 @@ class SiswaBimbingan {
   final String pembimbingIndustri;
   final String periodePkl;
   final int persentaseKehadiran;
+  final int jumlahHadir;
 
   const SiswaBimbingan({
     required this.id,
@@ -47,6 +48,7 @@ class SiswaBimbingan {
     this.pembimbingIndustri = '-',
     this.periodePkl = '-',
     this.persentaseKehadiran = 0,
+    this.jumlahHadir = 0,
   });
 
   String get inisial {
@@ -65,6 +67,7 @@ class SiswaBimbingan {
   factory SiswaBimbingan.fromJson(Map<String, dynamic> json) {
     final persentase =
         num.tryParse('${json['persentase_kehadiran'] ?? 0}') ?? 0;
+    final jumlahHadir = num.tryParse('${json['jumlah_hadir'] ?? 0}') ?? 0;
 
     return SiswaBimbingan(
       id: '${json['siswa_id'] ?? json['id'] ?? ''}',
@@ -78,6 +81,7 @@ class SiswaBimbingan {
       pembimbingIndustri: '${json['pembimbing_industri'] ?? '-'}',
       periodePkl: '${json['periode_pkl'] ?? '-'}',
       persentaseKehadiran: persentase.round(),
+      jumlahHadir: jumlahHadir.toInt(),
     );
   }
 }

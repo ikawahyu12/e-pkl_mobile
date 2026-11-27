@@ -32,6 +32,17 @@ class _IzinRepositoryFake implements IzinGuruRepository {
 }
 
 void main() {
+  test('mem-parsing jumlah kehadiran dari respons API', () {
+    final siswa = SiswaBimbingan.fromJson({
+      'siswa_id': 1,
+      'nama_lengkap': 'Siswa Real',
+      'status_kehadiran': 'hadir',
+      'jumlah_hadir': 7,
+    });
+
+    expect(siswa.jumlahHadir, 7);
+  });
+
   testWidgets('menampilkan rekap dari repository, bukan data dummy', (
     tester,
   ) async {
@@ -44,6 +55,7 @@ void main() {
         instansi: 'PT Real',
         status: StatusKehadiran.hadir,
         persentaseKehadiran: 90,
+        jumlahHadir: 3,
       ),
       SiswaBimbingan(
         id: '2',
@@ -53,6 +65,7 @@ void main() {
         instansi: 'CV Real',
         status: StatusKehadiran.izin,
         persentaseKehadiran: 80,
+        jumlahHadir: 1,
       ),
     ];
 
@@ -91,8 +104,14 @@ void main() {
 
     expect(find.text('Siswa Real'), findsOneWidget);
     expect(find.text('Siswa Izin'), findsOneWidget);
-    expect(find.text('85.0%'), findsOneWidget);
+    expect(find.text('Jumlah Kehadiran'), findsOneWidget);
+    expect(
+      find.text('4 kali hadir tercatat dari 2 siswa bimbingan.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('%'), findsNothing);
     expect(find.text('Ahmad Rizky Pratama'), findsNothing);
+    expect(find.text('Alpha'), findsNothing);
     final izinCard = find
         .ancestor(of: find.text('Izin'), matching: find.byType(InkWell))
         .first;
@@ -130,6 +149,53 @@ void main() {
 
     expect(find.text('Riwayat Izin'), findsOneWidget);
     expect(find.text('Belum ada pengajuan izin.'), findsOneWidget);
+  });
+
+  testWidgets('kartu Hadir membuka daftar siswa yang hadir', (tester) async {
+    const data = [
+      SiswaBimbingan(
+        id: '1',
+        nama: 'Siswa Hadir',
+        nis: '001',
+        kelas: 'XI RPL',
+        instansi: 'PT Real',
+        status: StatusKehadiran.hadir,
+        persentaseKehadiran: 90,
+        jumlahHadir: 3,
+      ),
+      SiswaBimbingan(
+        id: '2',
+        nama: 'Siswa Sakit',
+        nis: '002',
+        kelas: 'XI TKJ',
+        instansi: 'CV Real',
+        status: StatusKehadiran.sakit,
+        persentaseKehadiran: 80,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RekapKehadiranPage(
+          repository: _SiswaRepositoryFake(data),
+          izinRepository: _IzinRepositoryFake(const []),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Hadir'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.text('Siswa Hadir'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('3 kali hadir'), findsOneWidget);
+    expect(find.text('Siswa Sakit'), findsNothing);
   });
 
   testWidgets('kartu Sakit membuka riwayat sakit dan menampilkan datanya', (

@@ -81,17 +81,8 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
       .where((izin) => izin.jenis.trim().toLowerCase() == 'sakit')
       .length;
 
-  int get _jumlahAlpha =>
-      _siswa.where((siswa) => siswa.status == StatusKehadiran.alpha).length;
-
-  double get _rataRataKehadiran {
-    if (_siswa.isEmpty) return 0;
-    final total = _siswa.fold<int>(
-      0,
-      (jumlah, siswa) => jumlah + siswa.persentaseKehadiran,
-    );
-    return total / _siswa.length;
-  }
+  int get _totalKehadiran =>
+      _siswa.fold(0, (total, siswa) => total + siswa.jumlahHadir);
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +111,29 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildStatCard(
                           'Hadir',
                           _jumlahHadir.toString(),
                           Colors.green,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => DaftarSiswaHadirPage(
+                                  siswa: _siswa
+                                      .where(
+                                        (siswa) =>
+                                            siswa.status ==
+                                            StatusKehadiran.hadir,
+                                      )
+                                      .toList(growable: false),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -147,11 +155,7 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                           },
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _buildStatCard(
                           'Sakit',
@@ -168,14 +172,6 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                               ),
                             );
                           },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          'Alpha',
-                          _jumlahAlpha.toString(),
-                          Colors.red,
                         ),
                       ),
                     ],
@@ -202,9 +198,6 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
   }
 
   Widget _buildRingkasanKehadiran() {
-    final persentase = _rataRataKehadiran;
-    final nilai = persentase.clamp(0, 100);
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -220,29 +213,21 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
       ),
       child: Row(
         children: [
-          SizedBox(
+          Container(
             width: 70,
             height: 70,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: nilai / 100,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.grey.shade100,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
-                ),
-                Center(
-                  child: Text(
-                    '${persentase.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.green,
-                    ),
-                  ),
-                ),
-              ],
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$_totalKehadiran',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.green,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -251,14 +236,13 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Tingkat Kehadiran',
+                  'Jumlah Kehadiran',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${_siswa.length} siswa bimbingan memiliki rata-rata '
-                  'kehadiran ${persentase.toStringAsFixed(1)}% berdasarkan '
-                  'data terbaru.',
+                  '$_totalKehadiran kali hadir tercatat dari '
+                  '${_siswa.length} siswa bimbingan.',
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade600,
@@ -317,13 +301,6 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
   }
 
   Widget _buildSiswaRekapItem(SiswaBimbingan siswa) {
-    final persentase = siswa.persentaseKehadiran.toDouble().clamp(0, 100);
-    final warna = persentase >= 90
-        ? Colors.green
-        : persentase >= 75
-        ? Colors.blue
-        : Colors.red;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -367,28 +344,65 @@ class _RekapKehadiranPageState extends State<RekapKehadiranPage> {
                   ],
                 ),
               ),
-              Text(
-                '${siswa.persentaseKehadiran}%',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: warna,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${siswa.jumlahHadir}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    'kali hadir',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: persentase / 100,
-              minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(warna),
-            ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class DaftarSiswaHadirPage extends StatelessWidget {
+  final List<SiswaBimbingan> siswa;
+
+  const DaftarSiswaHadirPage({super.key, required this.siswa});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(title: const Text('Siswa Hadir')),
+      body: siswa.isEmpty
+          ? const Center(
+              child: StatePesan(
+                icon: Icons.event_busy_outlined,
+                pesan: 'Belum ada siswa yang hadir.',
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: siswa.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = siswa[index];
+                return Card(
+                  margin: EdgeInsets.zero,
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text(item.inisial)),
+                    title: Text(item.nama),
+                    subtitle: Text('${item.kelas} - ${item.instansi}'),
+                    trailing: Text('${item.jumlahHadir} kali hadir'),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
