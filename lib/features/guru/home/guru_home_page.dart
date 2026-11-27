@@ -149,7 +149,6 @@ class _GuruHomePageState extends State<GuruHomePage> {
           _barisTile(
             EpklStatTile(
               icon: Icons.person,
-              nilai: '${data.jumlahSiswa}',
               label: 'Siswa Bimbingan',
               onTap: () => _buka(GuruTujuan.siswaBimbingan),
             ),
@@ -157,7 +156,6 @@ class _GuruHomePageState extends State<GuruHomePage> {
               icon: Icons.how_to_reg,
               warnaIkon: EpklColors.hijau,
               latarIkon: EpklColors.hijauSoft,
-              nilai: '${data.persenKehadiran}%',
               label: 'Kehadiran',
               onTap: () => _buka(GuruTujuan.monitoring),
             ),
@@ -166,7 +164,6 @@ class _GuruHomePageState extends State<GuruHomePage> {
           _barisTile(
             EpklStatTile(
               icon: Icons.description,
-              nilai: '${data.jumlahJurnal}',
               label: 'Jurnal',
               onTap: () {
                 Navigator.push(
@@ -181,7 +178,6 @@ class _GuruHomePageState extends State<GuruHomePage> {
               icon: Icons.star,
               warnaIkon: EpklColors.kuning,
               latarIkon: EpklColors.kuningSoft,
-              nilai: '${data.jumlahPenilaian}',
               label: 'Penilaian',
               onTap: () {
                 Navigator.of(context).push(

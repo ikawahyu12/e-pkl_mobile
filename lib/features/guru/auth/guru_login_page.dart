@@ -444,25 +444,28 @@ class _LoginHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Image.asset(
-                'assets/images/logo_epkl.png',
-                width: 112,
-                height: 49,
-                fit: BoxFit.contain,
-                semanticLabel: 'Logo E-PKL',
+              child: Center(
+                child: Image.asset(
+                  'assets/images/logo_epkl.png',
+                  width: 112,
+                  height: 49,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Logo E-PKL',
+                ),
               ),
             ),
           ),
         ),
         Positioned(
-          left: 33,
-          right: 22,
+          left: 24,
+          right: 24,
           top: 201,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
                 'Selamat Datang',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -473,6 +476,7 @@ class _LoginHeader extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Masuk ke aplikasi pencatatan jurnal & kehadiran PKL Guru Pembimbing.',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: .92),
                   fontSize: 13,
